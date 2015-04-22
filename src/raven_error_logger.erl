@@ -22,7 +22,7 @@ handle_event({error, _, {Pid, Format, Data}}, State) ->
 	raven:capture(Message, Details),
 	{ok, State};
 handle_event({error_report, _, {Pid, Type, Report}}, State) ->
-	{Message, Details} = parse_report(error, Pid, Type, lists:sort(Report)),
+	{Message, Details} = parse_report(error, Pid, Type, Report),
 	raven:capture(Message, Details),
 	{ok, State};
 
