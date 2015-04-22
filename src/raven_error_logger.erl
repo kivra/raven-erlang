@@ -18,21 +18,17 @@ handle_call(_, State) ->
 	{ok, ok, State}.
 
 handle_event({error, _, {Pid, Format, Data}}, State) ->
-	{Message, Details} = parse_message(error, Pid, Format, Data),
-	raven:capture(Message, Details),
+    capture(parse_message(error, Pid, Format, Data)),
 	{ok, State};
 handle_event({error_report, _, {Pid, Type, Report}}, State) ->
-	{Message, Details} = parse_report(error, Pid, Type, Report),
-	raven:capture(Message, Details),
+    capture(parse_report(error, Pid, Type, Report)),
 	{ok, State};
 
 handle_event({warning_msg, _, {Pid, Format, Data}}, State) ->
-	{Message, Details} = parse_message(warning, Pid, Format, Data),
-	raven:capture(Message, Details),
+    capture(parse_message(warning, Pid, Format, Data)),
 	{ok, State};
 handle_event({warning_report, _, {Pid, Type, Report}}, State) ->
-	{Message, Details} = parse_report(warning, Pid, Type, lists:sort(Report)),
-	raven:capture(Message, Details),
+    capture(parse_report(warning, Pid, Type, lists:sort(Report))),
 	{ok, State};
 
 handle_event(_, State) ->
@@ -47,6 +43,11 @@ code_change(_, State, _) ->
 terminate(_, _) ->
 	ok.
 
+%% @private
+capture(mask) ->
+    ok;
+capture({Message, Details}) ->
+    raven:capture(Message, Details).
 
 %% @private
 parse_message(error = Level, Pid, "** Generic server " ++ _, [Name, LastMessage, State, Reason]) ->
@@ -125,6 +126,8 @@ parse_message(error = Level, Pid, "Error in process " ++ _, [Name, Node, Reason]
 			{reason, Reason}
 		]}
 	]};
+parse_message(_Level, _Pid, "Ranch listener " ++ _, _Data) ->
+    mask;
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
 		{level, Level},
