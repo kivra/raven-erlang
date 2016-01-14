@@ -5,34 +5,34 @@
 
 
 -export([
-	init/1,
-	code_change/3,
-	terminate/2,
-	handle_call/2,
-	handle_event/2,
-	handle_info/2
+         init/1,
+         code_change/3,
+         terminate/2,
+         handle_call/2,
+         handle_event/2,
+         handle_info/2
 ]).
 
 
 -record(state, {level}).
 
-init(Level) ->
-    {ok, #state{level=lager_util:config_to_mask(Level)}}.
+init([{level, Level}]) ->
+    {ok, #state{level=lager_util:level_to_num(Level)}}.
 
 
 %% @private
 handle_call(get_loglevel, #state{level=Level} = State) ->
     {ok, Level, State};
 handle_call({set_loglevel, Level}, State) ->
-   try lager_util:config_to_mask(Level) of
+   try lager_util:level_to_num(Level) of
         Levels ->
-            {ok, ok, State#state{level=Levels}}
-    catch
-        _:_ ->
-            {ok, {error, bad_log_level}, State}
-    end;
+           {ok, ok, State#state{level=Levels}}
+   catch
+       _:_ ->
+           {ok, {error, bad_log_level}, State}
+   end;
 handle_call(_, State) ->
-	{ok, ok, State}.
+    {ok, ok, State}.
 
 %% @private
 handle_event({log, Data},
@@ -49,13 +49,13 @@ handle_event(_Event, State) ->
 
 
 handle_info(_, State) ->
-	{ok, State}.
+    {ok, State}.
 
 code_change(_, State, _) ->
-	{ok, State}.
+    {ok, State}.
 
 terminate(_, _) ->
-	ok.
+    ok.
 
 capture(mask) ->
     ok;
@@ -91,4 +91,3 @@ parse_meta([{error_logger, _} | _Rest], _Acc) ->
     mask;
 parse_meta([{_, _} | Rest], Acc) ->
     parse_meta(Rest, Acc).
-
