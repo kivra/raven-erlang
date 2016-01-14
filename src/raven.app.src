@@ -8,8 +8,7 @@
 		crypto,
 		public_key,
 		ssl,
-		inets,
-		jiffy
+		inets
 	]},
 	{mod, {raven_app, []}},
 	{env, [

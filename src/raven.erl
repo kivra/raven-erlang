@@ -28,7 +28,7 @@ capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
 	Cfg = get_config(),
-	Document = {[
+	Document = [
 		{event_id, event_id_i()},
 		{project, unicode:characters_to_binary(Cfg#cfg.project)},
 		{platform, erlang},
@@ -37,24 +37,24 @@ capture(Message, Params) ->
 		{message, term_to_json_i(Message)} |
 		lists:map(fun
 			({stacktrace, Value}) ->
-				{'sentry.interfaces.Stacktrace', {[
+				{'sentry.interfaces.Stacktrace', [
 					{frames,lists:reverse([frame_to_json_i(Frame) || Frame <- Value])}
-				]}};
+				]};
 			({exception, {Type, Value}}) ->
-				{'sentry.interfaces.Exception', {[
+				{'sentry.interfaces.Exception', [
 					{type, Type},
 					{value, term_to_json_i(Value)}
-				]}};
+				]};
 			({tags, Tags}) ->
-				{tags, {[{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]}};
+				{tags, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
 			({extra, Tags}) ->
-				{extra, {[{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]}};
+				{extra, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
 			({Key, Value}) ->
 				{Key, term_to_json_i(Value)}
 		end, Params)
-	]},
+	],
 	Timestamp = integer_to_list(unix_timestamp_i()),
-	Body = base64:encode(zlib:compress(jiffy:encode(Document, [force_utf8]))),
+	Body = base64:encode(zlib:compress(jsx:encode(Document))),
 	UA = user_agent(),
 	Headers = [
 		{"X-Sentry-Auth",
@@ -136,7 +136,6 @@ frame_to_json_i({Module, Function, Arguments, Location}) ->
 		false -> -1;
 		{line, L} -> L
 	end,
-	{
 		case is_list(Arguments) of
 			true -> [{vars, [iolist_to_binary(io_lib:format("~w", [Argument])) || Argument <- Arguments]}];
 			false -> []
@@ -148,8 +147,7 @@ frame_to_json_i({Module, Function, Arguments, Location}) ->
 				false -> <<(atom_to_binary(Module, utf8))/binary, ".erl">>;
 				{file, File} -> list_to_binary(File)
 			end}
-		]
-	}.
+		].
 
 term_to_json_i(Term) when is_binary(Term); is_atom(Term) ->
 	Term;
