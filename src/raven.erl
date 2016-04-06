@@ -11,7 +11,8 @@
 	public_key :: string(),
 	private_key :: string(),
 	project :: string(),
-	ipfamily :: atom()
+	ipfamily :: atom(),
+	release :: binary() | undefined
 }).
 
 -type cfg_rec() :: #cfg{}.
@@ -34,6 +35,7 @@ capture(Message, Params) ->
 		{platform, erlang},
 		{server_name, node()},
 		{timestamp, timestamp_i()},
+		{release, Cfg#cfg.release},
 		{message, term_to_json_i(Message)} |
 		lists:map(fun
 			({stacktrace, Value}) ->
@@ -85,6 +87,7 @@ get_config() ->
 -spec get_config(App :: atom()) -> cfg_rec().
 get_config(App) ->
 	{ok, IpFamily} = application:get_env(App, ipfamily),
+	Release = application:get_env(App, release, undefined),
 	case application:get_env(App, dsn) of
 		{ok, Dsn} ->
 			{match, [_, Protocol, PublicKey, SecretKey, Uri, Project]} =
@@ -93,7 +96,8 @@ get_config(App) ->
 			     public_key = PublicKey,
 			     private_key = SecretKey,
 			     project = Project,
-			     ipfamily = IpFamily};
+			     ipfamily = IpFamily,
+			     release = Release};
 		undefined ->
 			{ok, Uri} = application:get_env(App, uri),
 			{ok, PublicKey} = application:get_env(App, public_key),
@@ -103,7 +107,8 @@ get_config(App) ->
 			     public_key = PublicKey,
 			     private_key = PrivateKey,
 			     project = Project,
-			     ipfamily = IpFamily}
+			     ipfamily = IpFamily,
+			     release = Release}
 	end.
 
 
