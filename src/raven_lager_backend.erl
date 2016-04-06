@@ -62,4 +62,11 @@ capture({Message, Params}) ->
 
 parse_message(Log) ->
     {lager_msg:message(Log), [ {level, lager_msg:severity(Log)}
-                             , {extra, lager_msg:metadata(Log)} ]}.
+                             | extra(Log)
+                             ]}.
+
+extra(Log) ->
+    case lager_msg:metadata(Log) of
+        []    -> [];
+        Extra -> [{extra, Extra}]
+    end.
