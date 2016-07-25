@@ -16,6 +16,8 @@
 
 -record(state, {level}).
 
+init(Level) when is_atom(Level) ->
+    init([{level, Level}]);
 init([{level, Level}]) ->
     {ok, #state{level=lager_util:level_to_num(Level)}}.
 
