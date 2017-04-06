@@ -386,4 +386,4 @@ format_term(Term) ->
 
 %% @private
 format(Format, Data) ->
-	iolist_to_binary(io_lib:format(Format, Data)).
+	iolist_to_binary(kivra_io:format(Format, Data)).

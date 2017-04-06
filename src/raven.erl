@@ -157,4 +157,4 @@ frame_to_json_i({Module, Function, Arguments, Location}) ->
 term_to_json_i(Term) when is_binary(Term); is_atom(Term) ->
 	Term;
 term_to_json_i(Term) ->
-	iolist_to_binary(io_lib:format("~120p", [Term])).
+	iolist_to_binary(kivra_io:format("~120p", [Term])).
