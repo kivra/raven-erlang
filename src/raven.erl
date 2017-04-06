@@ -47,6 +47,14 @@ capture(Message, Params) ->
 					{type, Type},
 					{value, term_to_json_i(Value)}
 				]};
+			({http_request, {Method, Url, Headers}}) ->
+				{'sentry.interfaces.HTTP', [
+					{request, [
+						{method,  Method},
+						{url,     Url},
+						{headers, Headers}
+					]}
+				]};
 			({tags, Tags}) ->
 				{tags, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
 			({extra, Tags}) ->

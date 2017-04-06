@@ -145,6 +145,26 @@ parse_message(error = Level, Pid, "Error in process " ++ _, [Name, Node, Reason]
 	]};
 parse_message(_Level, _Pid, "Ranch listener " ++ _, _Data) ->
     mask;
+%% Start of Kivra specific
+parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
+	          [[{method, Method}, {url, Url}, {headers, Headers}],
+	           {unknown_error, Error}] = Data) ->
+	{format("Unhandled error: ~p", [Error]), [
+		{level, Level},
+		{http_request, {Method, Url, Headers}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	] ++ case Error of
+			{lifted_exn, Exception, Stacktrace} ->
+				[{exception,  Exception},
+				 {stacktrace, Stacktrace}];
+			_ ->
+				[]
+		 end
+	};
+%% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
 		{level, Level},
