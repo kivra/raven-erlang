@@ -164,7 +164,7 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 				[]
 		 end
 	]};
-parse_message(error = Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
+parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
 		{exception, Exception},
@@ -172,7 +172,7 @@ parse_message(error = Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} 
 			{pid, Pid}
 		]}
 	]};
-parse_message(error = Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} | Rest])
+parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} | Rest])
 		when is_list(Extras) ->
 	{format(Format, [{failed, Reason} | Rest]), [
 		{level, Level},
