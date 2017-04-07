@@ -155,15 +155,15 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 		{extra, [
 			{pid, Pid},
 			{data, Data}
-		]}
-	] ++ case Error of
+		]} |
+		case Error of
 			{lifted_exn, Exception, Stacktrace} ->
 				[{exception,  Exception},
 				 {stacktrace, Stacktrace}];
 			_ ->
 				[]
 		 end
-	};
+	]};
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
