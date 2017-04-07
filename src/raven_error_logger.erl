@@ -182,6 +182,14 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
+parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, Operation}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
