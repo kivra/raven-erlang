@@ -112,6 +112,23 @@ parse_message(error = Level, Pid, "** Generic process " ++ _, [Name, LastMessage
 			{reason, Reason}
 		]}
 	]};
+parse_message(error = Level, Pid, "Error in process " ++ _,
+              [Name, Node, [ {reason, Reason}
+                           , {mfa, {Handler, _, _}}
+                           , {stacktrace, Stacktrace}
+                           | Extras ]]) ->
+	%% cowboy_handler terminate
+	{format_exit(process, Name, {Reason, Stacktrace}), [
+		{level, Level},
+		{exception, {exit, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{name, Name},
+			{pid, Pid},
+			{node, Node},
+			{handler, Handler} | Extras
+		]}
+	]};
 parse_message(error = Level, Pid, "Error in process " ++ _, [Name, Node, Reason]) ->
 	%% process terminate
 	{Exception, Stacktrace} = parse_reason(Reason),
