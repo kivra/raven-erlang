@@ -162,7 +162,7 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 				 {stacktrace, Stacktrace}];
 			_ ->
 				[]
-		 end
+		end
 	]};
 parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
 	{format(Format, Data), [
@@ -188,6 +188,40 @@ parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is
 		{exception, {failed, Operation}},
 		{extra, [
 			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "~p: ~p no transition for ~p" = Format, [ID, Name, Event] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed,
+		             {mechanus_modron, transition, [{state, Name}, {event, Event}]}}},
+		{extra, [
+			{pid, Pid},
+			{state, Name},
+			{event, Event},
+			{modron_id, ID}
+		]}
+	]};
+parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format,
+	          [ID, Action, {lifted_exn, Exception, Stacktrace}] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid},
+			{action, Action},
+			{modron_id, ID}
+		]}
+	]};
+parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {mechanus_modron, action, Action, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{action, Action},
+			{modron_id, ID}
 		]}
 	]};
 %% End of Kivra specific
