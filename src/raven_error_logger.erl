@@ -202,9 +202,9 @@ parse_message(Level, Pid, "~p: ~p no transition for ~p" = Format, [ID, Name, Eve
 			{modron_id, ID}
 		]}
 	]};
-parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format,
-	          [ID, Action, {lifted_exn, Exception, Stacktrace}] = Data) ->
-	{format(Format, Data), [
+parse_message(Level, Pid, "~p: action ~p failed: ~p",
+	          [ID, Action, {lifted_exn, Exception, Stacktrace}]) ->
+	{format("~p: action ~p failed", [ID, Action]), [
 		{level, Level},
 		{exception, Exception},
 		{stacktrace, Stacktrace},
