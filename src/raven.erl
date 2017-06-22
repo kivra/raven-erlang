@@ -47,6 +47,11 @@ capture(Message, Params) ->
 					{type, Type},
 					{value, term_to_json_i(Value)}
 				]};
+			({exception, Value}) ->
+				{'sentry.interfaces.Exception', [
+					{type, error},
+					{value, term_to_json_i(Value)}
+				]};
 			({http_request, {Method, Url, Headers}}) ->
 				{'sentry.interfaces.Http', [
 					{method,  Method},
