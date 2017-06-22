@@ -224,6 +224,16 @@ parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn]
 			{modron_id, ID}
 		]}
 	]};
+parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
+		[B, _K, Rsn, Attempt, MaxAttempts] = Data) when Attempt < MaxAttempts ->
+	{format(Format, Data), [
+		{level, warning},
+		{exception, {krc_error, {B, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
