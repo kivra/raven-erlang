@@ -245,7 +245,7 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 	ExceptionValue =
 		case Args of
 			[Arg1|_] when is_atom(Arg1) -> {M, F, [Arg1|'_']};
-			_                           -> {M, F, '_'}
+			_                           -> {M, F, length(Args)}
 		end,
 	{format(Format, Data), [
 		{level, Level},
