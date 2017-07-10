@@ -234,6 +234,43 @@ parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
 			{data, Data}
 		]}
 	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {badmatch, {rollback, function_clause, [{M, F, Args, _} | _]}}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	ExceptionValue =
+		case Args of
+			[Arg1|_] when is_atom(Arg1) -> {M, F, [Arg1|'_']};
+			_                           -> {M, F, '_'}
+		end,
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {{badmatch, {rollback, function_clause, '...'}}, ExceptionValue}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {badmatch, {rollback, Exception, [{M, F, Arity, _} | _]}}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {{badmatch, {rollback, Exception, '...'}}, {M, F, Arity}}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
