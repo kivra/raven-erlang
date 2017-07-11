@@ -271,6 +271,9 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 			{pid, Pid}
 		]}
 	]};
+% Mask warnings for failed tasks in KKng
+parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
+	mask;
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
