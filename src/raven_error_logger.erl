@@ -145,6 +145,136 @@ parse_message(error = Level, Pid, "Error in process " ++ _, [Name, Node, Reason]
 	]};
 parse_message(_Level, _Pid, "Ranch listener " ++ _, _Data) ->
     mask;
+%% Start of Kivra specific
+parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
+			  [[{method, Method}, {url, Url}, {headers, Headers}],
+			   {unknown_error, Error}] = Data) ->
+	{format("Unhandled error: ~p", [Error]), [
+		{level, Level},
+		{http_request, {Method, Url, Headers}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]} |
+		case Error of
+			{lifted_exn, Exception, Stacktrace} ->
+				[{exception,  Exception},
+				 {stacktrace, Stacktrace}];
+			_ ->
+				[]
+		end
+	]};
+parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, Exception},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} | Rest])
+		when is_list(Extras) ->
+	{format(Format, [{failed, Reason} | Rest]), [
+		{level, Level},
+		{exception, {failed, Reason}},
+		{extra, [
+			{pid, Pid} |
+			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
+		]}
+	]};
+parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, Operation}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "~p: ~p no transition for ~p" = Format, [ID, Name, Event] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed,
+		             {mechanus_modron, transition, [{state, Name}, {event, Event}]}}},
+		{extra, [
+			{pid, Pid},
+			{state, Name},
+			{event, Event},
+			{modron_id, ID}
+		]}
+	]};
+parse_message(Level, Pid, "~p: action ~p failed: ~p",
+	          [ID, Action, {lifted_exn, Exception, Stacktrace}]) ->
+	{format("~p: action ~p failed", [ID, Action]), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid},
+			{action, Action},
+			{modron_id, ID}
+		]}
+	]};
+parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {mechanus_modron, action, Action, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{action, Action},
+			{modron_id, ID}
+		]}
+	]};
+parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
+		[B, _K, Rsn, Attempt, MaxAttempts] = Data) when Attempt < MaxAttempts ->
+	{format(Format, Data), [
+		{level, warning},
+		{exception, {krc_error, {B, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {badmatch, {rollback, function_clause, [{M, F, Args, _} | _]}}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	ExceptionValue =
+		case Args of
+			[Arg1|_] when is_atom(Arg1) -> {M, F, [Arg1|'_']};
+			_                           -> {M, F, length(Args)}
+		end,
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {{badmatch, {rollback, function_clause, '...'}}, ExceptionValue}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {badmatch, {rollback, Exception, [{M, F, Arity, _} | _]}}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {{badmatch, {rollback, Exception, '...'}}, {M, F, Arity}}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+% Mask warnings for failed tasks in KKng
+parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
+	mask;
+%% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
 		{level, Level},
@@ -386,4 +516,4 @@ format_term(Term) ->
 
 %% @private
 format(Format, Data) ->
-	iolist_to_binary(io_lib:format(Format, Data)).
+	iolist_to_binary(kivra_io:format(Format, Data)).
