@@ -244,7 +244,7 @@ parse_message(Level, Pid, "Krc EXIT ~p: ~p" = Format, [Pid, Rsn] = Data) ->
 		]}
 	]};
 parse_message(Level, Pid, "unable to fetch payments from pacioli for user ~p: ~p" = Format,
-	          [UKey, Rsn] = Data) ->
+			  [UKey, Rsn] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
 		{exception, {failed, {pacioli, payment_collection, Rsn}}},
@@ -254,10 +254,40 @@ parse_message(Level, Pid, "unable to fetch payments from pacioli for user ~p: ~p
 		]}
 	]};
 parse_message(Level, Pid, "unable to pay using pacioli for user ~p: ~p" = Format,
-	          [UKey, Rsn] = Data) ->
+			  [UKey, Rsn] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
 		{exception, {failed, {pacioli, pay, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{user_key, UKey}
+		]}
+	]};
+parse_message(Level, Pid, "unable to delete mandate from pacioli for user ~p: ~p" = Format,
+			  [UKey, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {pacioli, del_mandate, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{user_key, UKey}
+		]}
+	]};
+parse_message(Level, Pid, "unable to cancel payments from pacioli for user ~p: ~p" = Format,
+			  [UKey, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {pacioli, cancel_payment, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{user_key, UKey}
+		]}
+	]};
+parse_message(Level, Pid, "unable to onboard payments from pacioli for user ~p: ~p" = Format,
+			  [UKey, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {pacioli, new_mandate, Rsn}}},
 		{extra, [
 			{pid, Pid},
 			{user_key, UKey}
