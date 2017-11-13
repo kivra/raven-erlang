@@ -253,6 +253,16 @@ parse_message(Level, Pid, "unable to fetch payments from pacioli for user ~p: ~p
 			{user_key, UKey}
 		]}
 	]};
+parse_message(Level, Pid, "unable to pay using pacioli for user ~p: ~p" = Format,
+	          [UKey, Rsn] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {pacioli, pay, Rsn}}},
+		{extra, [
+			{pid, Pid},
+			{user_key, UKey}
+		]}
+	]};
 parse_message(Level, Pid, "** Exception: ~p~n"
 						  "** Reason: ~p~n"
 						  "** Stacktrace: ~p~n" ++ _ = Format,
