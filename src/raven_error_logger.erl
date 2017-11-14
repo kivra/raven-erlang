@@ -184,6 +184,17 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
+%% Beehive
+parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
+	{Exception, Stacktrace} = parse_reason(Reason),
+	{format(Format, Exception), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
