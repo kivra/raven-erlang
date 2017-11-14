@@ -146,6 +146,7 @@ parse_message(error = Level, Pid, "Error in process " ++ _, [Name, Node, Reason]
 parse_message(_Level, _Pid, "Ranch listener " ++ _, _Data) ->
     mask;
 %% Start of Kivra specific
+%% --- rest_prelude ----
 parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 			  [[{method, Method}, {url, Url}, {headers, Headers}],
 			   {unknown_error, Error}] = Data) ->
@@ -164,6 +165,7 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 				[]
 		end
 	]};
+%% --- General ---
 parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
@@ -182,6 +184,7 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
+%% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
 		{level, Level},
@@ -190,6 +193,7 @@ parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is
 			{pid, Pid}
 		]}
 	]};
+%% --- Mechanus ---
 parse_message(Level, Pid, "~p: ~p no transition for ~p" = Format, [ID, Name, Event] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
@@ -224,6 +228,19 @@ parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn]
 			{modron_id, ID}
 		]}
 	]};
+%% --- Brod ---
+parse_message(Level, Pid, "Error in produce response\n"
+						  "Topic: ~s Partition: ~B Offset: ~B Error: ~p" = Format,
+			  [Topic, _Partition, _Offset, ErrorCode] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {brod, produce, Topic, ErrorCode}}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
+%% --- KRC ---
 parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
 		[B, _K, Rsn, Attempt, MaxAttempts] = Data) when Attempt < MaxAttempts ->
 	{format(Format, Data), [
@@ -243,6 +260,7 @@ parse_message(Level, Pid, "Krc EXIT ~p: ~p" = Format, [Pid, Rsn] = Data) ->
 			{data, Data}
 		]}
 	]};
+%% --- Pacioli calls from Kivra Core ---
 parse_message(Level, Pid, "unable to fetch payments from pacioli for user ~p: ~p" = Format,
 			  [UKey, Rsn] = Data) ->
 	{format(Format, Data), [
@@ -293,6 +311,7 @@ parse_message(Level, Pid, "unable to onboard payments from pacioli for user ~p: 
 			{user_key, UKey}
 		]}
 	]};
+%% --- Pacioli ---
 parse_message(Level, Pid, "** Exception: ~p~n"
 						  "** Reason: ~p~n"
 						  "** Stacktrace: ~p~n" ++ _ = Format,
@@ -330,6 +349,7 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 			{pid, Pid}
 		]}
 	]};
+%% --- KKng ---
 % Mask warnings for failed tasks in KKng
 parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
 	mask;
