@@ -195,6 +195,16 @@ parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
 			{pid, Pid}
 		]}
 	]};
+%% ulogc
+parse_message(Level, Pid, "ULog error: ~p/~p" ++ _ = Format,
+			  [C, R | _] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {C, R}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
