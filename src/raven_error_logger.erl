@@ -187,7 +187,7 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 %% Beehive
 parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
 	{Exception, Stacktrace} = parse_reason(Reason),
-	{format(Format, Exception), [
+	{format(Format, [Exception]), [
 		{level, Level},
 		{exception, Exception},
 		{stacktrace, Stacktrace},
