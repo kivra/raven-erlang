@@ -281,6 +281,18 @@ parse_message(Level, Pid, "Error in produce response\n"
 			{data, Data}
 		]}
 	]};
+parse_message(Level, Pid, "~p [~p] ~p is terminating\nreason: ~p~n" = Format,
+	          [_Module, _Pid, _ClientId, Reason] = Data) ->
+	{Exception, Stacktrace} = parse_reason(Reason),
+	{format(Format, Data), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
 %% --- KRC ---
 parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
 		[B, _K, Rsn, Attempt, MaxAttempts] = Data) when Attempt < MaxAttempts ->
