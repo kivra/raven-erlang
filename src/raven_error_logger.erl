@@ -206,6 +206,17 @@ parse_message(Level, Pid, "ULog error: ~p/~p" ++ _ = Format,
 		]}
 	]};
 parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
+			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace} | Rest])
+		when Class =:= exit; Class =:= error; Class =:= throw ->
+	{format(Format, [{Class, Reason} | Rest]), [
+		{level, Level},
+		{exception, {Class, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
 			  [Rsn | _] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
