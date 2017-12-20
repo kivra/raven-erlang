@@ -205,6 +205,26 @@ parse_message(Level, Pid, "ULog error: ~p/~p" ++ _ = Format,
 			{pid, Pid}
 		]}
 	]};
+parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
+			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace} | Rest])
+		when Class =:= exit; Class =:= error; Class =:= throw ->
+	{format(Format, [{Class, Reason} | Rest]), [
+		{level, Level},
+		{exception, {Class, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
+			  [Rsn | _] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {ulog_error, Rsn}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
@@ -256,6 +276,18 @@ parse_message(Level, Pid, "Error in produce response\n"
 	{format(Format, Data), [
 		{level, Level},
 		{exception, {failed, {brod, produce, Topic, ErrorCode}}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
+parse_message(Level, Pid, "~p [~p] ~p is terminating\nreason: ~p~n" = Format,
+	          [_Module, _Pid, _ClientId, Reason] = Data) ->
+	{Exception, Stacktrace} = parse_reason(Reason),
+	{format(Format, Data), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
 		{extra, [
 			{pid, Pid},
 			{data, Data}
