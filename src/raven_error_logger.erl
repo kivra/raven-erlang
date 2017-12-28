@@ -270,11 +270,11 @@ parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn]
 		]}
 	]};
 %% --- Brod ---
-parse_message(Level, Pid, "Error in produce response\n"
-						  "Topic: ~s Partition: ~B Offset: ~B Error: ~p" = Format,
+parse_message(_Level, Pid, "Error in produce response\n"
+						   "Topic: ~s Partition: ~B Offset: ~B Error: ~p" = Format,
 			  [Topic, _Partition, _Offset, ErrorCode] = Data) ->
 	{format(Format, Data), [
-		{level, Level},
+		{level, warning},
 		{exception, {failed, {brod, produce, Topic, ErrorCode}}},
 		{extra, [
 			{pid, Pid},
