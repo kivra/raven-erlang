@@ -273,7 +273,9 @@ parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn]
 parse_message(_Level, Pid, "Error in produce response\n"
 						   "Topic: ~s Partition: ~B Offset: ~B Error: ~p" = Format,
 			  [Topic, _Partition, _Offset, ErrorCode] = Data) ->
-	{format(Format, Data), [
+	Extra = "\nRetriable errors will be retried, actual failures will result in "
+			"an exit. Look for 'producer_down'.",
+	{format(Format ++ Extra, Data), [
 		{level, warning},
 		{exception, {failed, {brod, produce, Topic, ErrorCode}}},
 		{extra, [
