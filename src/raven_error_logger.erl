@@ -184,6 +184,17 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
+parse_message(Level, Pid, "Catched this: ~p" ++ _ = Format,
+			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace} | Rest])
+		when Class =:= exit; Class =:= error; Class =:= throw ->
+	{format(Format, [{Class, Reason} | Rest]), [
+		{level, Level},
+		{exception, {Class, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% Beehive
 parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
 	{Exception, Stacktrace} = parse_reason(Reason),
