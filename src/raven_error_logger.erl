@@ -165,6 +165,14 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 				[]
 		end
 	]};
+parse_message(Level, Pid, "Too Many Requests: ~s ~p" ++ _ = Format, [Method, Resource | _] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {too_many_requests, {Method, Resource}}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- General ---
 parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Exception | _] = Data) ->
 	{format(Format, Data), [
