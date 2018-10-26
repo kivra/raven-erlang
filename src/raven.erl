@@ -58,6 +58,11 @@ capture(Message, Params) ->
 					{url,     Url},
 					{headers, Headers}
 				]};
+			% Reserved keys are 'id', 'username', 'email' and 'ip_address' out
+			% of which ONE needs to be supplied. Additional arbitrary keys may
+			% also be sent.
+			({user, KVs}) when is_list(KVs) ->
+				{'sentry.interfaces.User', KVs};
 			({tags, Tags}) ->
 				{tags, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
 			({extra, Tags}) ->
