@@ -165,10 +165,15 @@ parse_message(error = Level, Pid, "Unhandled error: ~p~n~p",
 				[]
 		end
 	]};
-parse_message(Level, Pid, "Too Many Requests: ~s ~p" ++ _ = Format, [Method, Resource | _] = Data) ->
-	{format(Format, Data), [
+parse_message(Level, Pid, "Too Many Requests: ~s ~p\n"
+						  "Rate Limit Key: ~s\n"
+						  "Raven User: ~p",
+			  [Method, Resource, RateLimitKey, RavenUser] = _Data) when is_list(RavenUser) ->
+	{format("Too Many Requests: ~s ~p\n"
+		    "Rate Limit Key: ~s", [Method, Resource, RateLimitKey]), [
 		{level, Level},
 		{exception, {too_many_requests, {Method, Resource}}},
+		{user, RavenUser},
 		{extra, [
 			{pid, Pid}
 		]}
