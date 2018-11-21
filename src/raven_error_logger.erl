@@ -219,6 +219,16 @@ parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
 			{pid, Pid}
 		]}
 	]};
+%% Cybertron
+parse_message(Level, Pid, "~p failed for 5 minutes: ~p" = Format,
+			  [cybertron_email, {error, Status, _Headers, _Body}] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {failed, {cybertron_email, Status}}},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% ulogc
 parse_message(Level, Pid, "ULog error: ~p/~p" ++ _ = Format,
 			  [C, R | _] = Data) ->
