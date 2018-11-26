@@ -197,15 +197,16 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
-parse_message(Level, Pid, "Catched this: ~p" ++ _ = Format,
-			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace} | Rest])
+parse_message(Level, Pid, "Exception: ~p\n"
+						  "Extras: ~p" = Format,
+			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace}, Extras])
 		when Class =:= exit; Class =:= error; Class =:= throw ->
-	{format(Format, [{Class, Reason} | Rest]), [
+	{format(Format, [{Class, Reason}, Extras]), [
 		{level, Level},
 		{exception, {Class, Reason}},
 		{stacktrace, Stacktrace},
 		{extra, [
-			{pid, Pid}
+			{pid, Pid} | [ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
 %% Beehive
