@@ -439,6 +439,44 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 			{pid, Pid}
 		]}
 	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ { { { badmatch
+						        , {error, {Exception, [{_,_,_,_}|_] = InnerStacktrace}}
+						        }
+						      , [{_,_,_,_}|_] = MiddleStacktrace
+						      }
+						    , _
+						    }
+						  , _Rsn
+						  , _Stacktrace
+						  | _
+						  ] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {badmatch, {error, Exception, '...'}}},
+		{stacktrace, InnerStacktrace ++ MiddleStacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {ShutdownOrNoproc, {gen_server, CallOrCast, _}}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {ShutdownOrNoproc, {gen_server, CallOrCast, '...'}}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- KKng ---
 % Mask warnings for failed tasks in KKng
 parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
