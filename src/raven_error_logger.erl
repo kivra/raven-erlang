@@ -65,6 +65,41 @@ parse_message(error = Level, Pid, "** Generic server " ++ _, [Name, LastMessage,
 			{reason, Reason}
 		]}
 	]};
+%% OTP 20 crash reports where the client pid is dead don't include the stacktrace
+parse_message(error = Level, Pid, "** Generic server " ++ _, [Name, LastMessage, State, Reason, Client]) ->
+	%% gen_server terminate
+	{Exception, Stacktrace} = parse_reason(Reason),
+	{format_exit(gen_server, Name, Reason), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{name, Name},
+			{pid, Pid},
+			{last_message, LastMessage},
+			{state, State},
+			{reason, Reason},
+			{client, Client}
+		]}
+	]};
+%% OTP 20 crash reports contain the pid of the client and stacktrace
+parse_message(error = Level, Pid, "** Generic server " ++ _, [Name, LastMessage, State, Reason, Client, ClientStacktrace]) ->
+	%% gen_server terminate
+	{Exception, Stacktrace} = parse_reason(Reason),
+	{format_exit(gen_server, Name, Reason), [
+		{level, Level},
+		{exception, Exception},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{name, Name},
+			{pid, Pid},
+			{last_message, LastMessage},
+			{state, State},
+			{reason, Reason},
+			{client, Client},
+			{client_stacktrace, ClientStacktrace}
+		]}
+	]};
 parse_message(error = Level, Pid, "** State machine " ++ _, [Name, LastMessage, StateName, State, Reason]) ->
 	%% gen_fsm terminate
 	{Exception, Stacktrace} = parse_reason(Reason),
