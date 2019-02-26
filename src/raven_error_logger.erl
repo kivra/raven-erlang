@@ -116,6 +116,39 @@ parse_message(error = Level, Pid, "** State machine " ++ _, [Name, LastMessage, 
 			{reason, Reason}
 		]}
 	]};
+parse_message(error = Level, Pid, "** State machine " ++ _, [Name, LastEvent, {StateName, StateData}, Class, Reason, CallbackMode, Stacktrace]) ->
+	%% gen_statem terminate
+	{format_exit(gen_statem, Name, Reason), [
+		{level, Level},
+		{exception, {Class, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{name, Name},
+			{pid, Pid},
+			{last_event, LastEvent},
+			{state_name, StateName},
+			{state_data, StateData},
+			{callback_mode, CallbackMode},
+			{reason, Reason}
+		]}
+	]};
+parse_message(error = Level, Pid, "** State machine " ++ _, [Name, LastEvent, [{StateName, StateData}], Class, Reason, CallbackMode, Stacktrace]) ->
+	%% gen_statem terminate
+	%% sometimes gen_statem wraps its statename/data in a list for some reason???
+	{format_exit(gen_statem, Name, Reason), [
+		{level, Level},
+		{exception, {Class, Reason}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{name, Name},
+			{pid, Pid},
+			{last_event, LastEvent},
+			{state_name, StateName},
+			{state_data, StateData},
+			{callback_mode, CallbackMode},
+			{reason, Reason}
+		]}
+	]};
 parse_message(error = Level, Pid, "** gen_event handler " ++ _, [ID, Name, LastMessage, State, Reason]) ->
 	%% gen_event terminate
 	{Exception, Stacktrace} = parse_reason(Reason),
@@ -673,6 +706,10 @@ format_reason({bad_return_value, Val}) ->
 	["bad return value ", format_term(Val)];
 format_reason({{bad_return_value, Val}, Trace}) ->
 	["bad return value ", format_term(Val), " in ", format_mfa(Trace)];
+format_reason({bad_return_from_state_function, Val}) ->
+	["bad return value from state function ", format_term(Val)];
+format_reason({{bad_return_from_state_function, Val}, Trace}) ->
+	["bad return value from state function ", format_term(Val), " in ", format_mfa(Trace)];
 format_reason({{badrecord, Record}, Trace}) ->
 	["bad record ", format_term(Record), " in ", format_mfa(Trace)];
 format_reason({{case_clause, Value}, Trace}) ->
