@@ -398,6 +398,16 @@ parse_message(Level, Pid, "~p [~p] ~p is terminating\nreason: ~p~n" = Format,
 			{data, Data}
 		]}
 	]};
+parse_message(Level, Pid, "~p ~p terminating, reason:\n~p" = Format,
+	          [_Module, _Pid, Reason] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {exit, Reason}},
+		{extra, [
+			{pid, Pid},
+			{data, Data}
+		]}
+	]};
 %% --- KRC ---
 parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
 		[B, _K, Rsn, Attempt, MaxAttempts] = Data) when Attempt < MaxAttempts ->
