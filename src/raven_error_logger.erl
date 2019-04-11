@@ -419,7 +419,7 @@ parse_message(_Level, Pid, "{~p, ~p} error: ~p, attempt ~p of ~p" = Format,
 			{data, Data}
 		]}
 	]};
-parse_message(Level, Pid, "Krc EXIT ~p: ~p" = Format, [Pid, Rsn] = Data) ->
+parse_message(Level, Pid, "Krc EXIT ~p: ~p" = Format, [_Pid, Rsn] = Data) ->
 	{format(Format, Data), [
 		{level, Level},
 		{exception, {krc_exit, Rsn}},
