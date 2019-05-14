@@ -555,6 +555,23 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 			{pid, Pid}
 		]}
 	]};
+parse_message(Level, Pid, "** Exception: ~p~n"
+						  "** Reason: ~p~n"
+						  "** Stacktrace: ~p~n" ++ _ = Format,
+						  [ {assert, AssertData}
+						  , _Rsn
+						  , Stacktrace
+						  | _
+						  ] = Data) ->
+	Expression = proplists:get_value(expression, AssertData),
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {assert, format_string(Expression)}},
+		{stacktrace, Stacktrace},
+		{extra, [
+			{pid, Pid}
+		]}
+	]};
 %% --- KKng ---
 % Mask warnings for failed tasks in KKng
 parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
