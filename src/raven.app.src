@@ -9,7 +9,7 @@
 		public_key,
 		ssl,
 		inets,
-		kivra_lib
+		stdlib2
 	]},
 	{mod, {raven_app, []}},
 	{env, [

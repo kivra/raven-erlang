@@ -822,4 +822,4 @@ format_term(Term) ->
 
 %% @private
 format(Format, Data) ->
-	iolist_to_binary(kivra_io:format(Format, Data)).
+	iolist_to_binary(s2_io:format(Format, Data)).
