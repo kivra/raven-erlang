@@ -328,6 +328,19 @@ parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
 			{pid, Pid}
 		]}
 	]};
+%% brod
+parse_message(Level, Pid, "Produce error ~s-~B Offset: ~B Error: ~p" = Format,
+              [Topic, Partition, Offset, Error] = Data) ->
+	{format(Format, Data), [
+		{level, Level},
+		{exception, {brod_produce_error, Error, Topic}},
+		{extra, [
+			{topic, Topic},
+			{partition, Partition},
+			{offset, Offset},
+			{pid, Pid}
+		]}
+	]};
 %% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
