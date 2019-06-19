@@ -328,19 +328,6 @@ parse_message(Level, Pid, "ULog error: ~p~n" ++ _ = Format,
 			{pid, Pid}
 		]}
 	]};
-%% brod
-parse_message(Level, Pid, "Produce error ~s-~B Offset: ~B Error: ~p" = Format,
-              [Topic, Partition, Offset, Error] = Data) ->
-	{format(Format, Data), [
-		{level, Level},
-		{exception, {brod_produce_error, Error, Topic}},
-		{extra, [
-			{topic, Topic},
-			{partition, Partition},
-			{offset, Offset},
-			{pid, Pid}
-		]}
-	]};
 %% --- kivra_core_periodic ---
 parse_message(Level, Pid, "[~p] " ++ _ = Format, [Operation | _] = Data) when is_atom(Operation) ->
 	{format(Format, Data), [
@@ -386,8 +373,7 @@ parse_message(Level, Pid, "~p: action ~p failed: ~p" = Format, [ID, Action, Rsn]
 		]}
 	]};
 %% --- Brod ---
-parse_message(_Level, Pid, "Error in produce response\n"
-						   "Topic: ~s Partition: ~B Offset: ~B Error: ~p" = Format,
+parse_message(_Level, Pid, "Produce error ~s-~B Offset: ~B Error: ~p" = Format,
 			  [Topic, _Partition, _Offset, ErrorCode] = Data) ->
 	Extra = "\nRetriable errors will be retried, actual failures will result in "
 			"an exit. Look for 'producer_down'.",
