@@ -277,17 +277,6 @@ parse_message(Level, Pid, "Exception: ~p\n"
 			{pid, Pid} | [ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
 		]}
 	]};
-%% Beehive
-parse_message(Level, Pid, "ULog error: ~p" = Format, [Reason] = _Data) ->
-	{Exception, Stacktrace} = parse_reason(Reason),
-	{format(Format, [Exception]), [
-		{level, Level},
-		{exception, Exception},
-		{stacktrace, Stacktrace},
-		{extra, [
-			{pid, Pid}
-		]}
-	]};
 %% Cybertron
 parse_message(Level, Pid, "~p failed for 5 minutes: ~p" = Format,
 			  [cybertron_email, {error, Status, _Headers, _Body}] = Data) ->
