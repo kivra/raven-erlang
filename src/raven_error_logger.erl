@@ -10,6 +10,7 @@
 	handle_info/2
 ]).
 
+-export([extract_user/1]).
 
 init(_) ->
 	{ok, []}.
@@ -257,25 +258,29 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, _Reason} = Except
 	]};
 parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} | Rest])
 		when is_list(Extras) ->
+	{User, ExtrasWithoutUser} = extract_user(Extras),
 	{format(Format, [{failed, Reason} | Rest]), [
 		{level, Level},
 		{exception, {failed, Reason}},
 		{extra, [
 			{pid, Pid} |
-			[ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
+			[ {Key, Value} || {Key, Value} <- ExtrasWithoutUser, is_atom(Key) ]
 		]}
+		| User
 	]};
 parse_message(Level, Pid, "Exception: ~p\n"
 						  "Extras: ~p" = Format,
 			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace}, Extras])
 		when Class =:= exit; Class =:= error; Class =:= throw ->
+	{User, ExtrasWithoutUser} = extract_user(Extras),
 	{format(Format, [{Class, Reason}, Extras]), [
 		{level, Level},
 		{exception, {Class, Reason}},
 		{stacktrace, Stacktrace},
 		{extra, [
-			{pid, Pid} | [ {Key, Value} || {Key, Value} <- Extras, is_atom(Key) ]
+			{pid, Pid} | [ {Key, Value} || {Key, Value} <- ExtrasWithoutUser, is_atom(Key) ]
 		]}
+		| User
 	]};
 %% Cybertron
 parse_message(Level, Pid, "~p failed for 5 minutes: ~p" = Format,
@@ -564,6 +569,7 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 % Mask warnings for failed tasks in KKng
 parse_message(warning = _Level, _Pid, "failed task: ~w", [_Tid]) ->
 	mask;
+
 %% End of Kivra specific
 parse_message(Level, Pid, Format, Data) ->
 	{format(Format, Data), [
@@ -811,3 +817,58 @@ format_term(Term) ->
 %% @private
 format(Format, Data) ->
 	iolist_to_binary(s2_io:format(Format, Data)).
+
+%% Start of Kivra specific
+%% @private
+-type proplist() :: [{any(), any()}].
+-spec extract_user(proplist() | binary()) -> {proplist(), proplist()}.
+extract_user(Extras) ->
+	{[MaybeContext], ExtrasWithoutUser} = proplists:split(Extras, [user]),
+	UserContext = extract_user_context(MaybeContext),
+	{UserContext, ExtrasWithoutUser}.
+
+extract_user_context([]) -> [];
+extract_user_context([{user, Context}]) when is_list(Context) -> [{user, Context}];
+extract_user_context([{user, Id}]) -> [{user, [{id, Id}]}];
+extract_user_context(Other) -> Other.
+
+%%%_* Tests ============================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+extract_user_test_() ->
+	[
+		fun() ->
+            Actual = extract_user(Extras),
+            ?assertEqual(Expected, Actual)
+        end
+    ||
+        {Extras, Expected} <- [
+            {[], {[], []}},
+            {
+				     [{data, <<"stuff">>}],
+				{[], [{data, <<"stuff">>}]}
+			},
+			{
+				 [{user,       <<"key">>}],
+				{[{user, [{id, <<"key">>}]}], []}
+			},
+			{
+				 [{user, [{email, <<"jane@example.com">>}]}],
+				{[{user, [{email, <<"jane@example.com">>}]}], []}
+			},
+			{
+				[
+					 {user, [{id, <<"key">>}]},
+					 {data, <<"stuff">>}
+				],
+				{
+					[{user, [{id, <<"key">>}]}],
+					[{data, <<"stuff">>}]
+				}
+			}
+		]
+	].
+
+-endif.
+%% End of Kivra specific
