@@ -268,6 +268,17 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 		]}
 		| User
 	]};
+parse_message(Level, Pid, "[warning] Extras: ~p " ++ Format, [Extras | Data])
+		when is_list(Extras) ->
+	{User, ExtrasWithoutUser} = extract_user(Extras),
+	{format(Format, Data), [
+		{level, Level},
+		{extra, [
+			{pid, Pid} |
+			[ {Key, Value} || {Key, Value} <- ExtrasWithoutUser, is_atom(Key) ]
+		]}
+		| User
+	]};
 parse_message(Level, Pid, "Exception: ~p\n"
 						  "Extras: ~p" = Format,
 			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace}, Extras])
