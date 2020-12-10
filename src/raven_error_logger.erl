@@ -268,7 +268,7 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 		]}
 		| User
 	]};
-parse_message(Level, Pid, "[warning] Extras: ~p " ++ Format, [Extras | Data])
+parse_message(Level, Pid, "Warning: ~p~n" ++ Format, [{extras, Extras} | Data])
 		when is_list(Extras) ->
 	{User, ExtrasWithoutUser} = extract_user(Extras),
 	{format(Format, Data), [
