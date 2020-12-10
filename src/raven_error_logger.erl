@@ -268,13 +268,26 @@ parse_message(Level, Pid, "Error: ~p" ++ _ = Format, [{failed, Reason, Extras} |
 		]}
 		| User
 	]};
+parse_message(Level, Pid, "Warning: ~p~n" ++ Format, [{extras, Extras} | Data])
+		when is_list(Extras) ->
+	{User, ExtrasWithoutUser} = extract_user(Extras),
+	{format(Format, Data), [
+		{level, Level},
+		{extra, [
+			{pid, Pid} |
+			[ {Key, Value} || {Key, Value} <- ExtrasWithoutUser, is_atom(Key) ]
+		]}
+		| User
+	]};
 parse_message(Level, Pid, "Exception: ~p\n"
 						  "Extras: ~p" = Format,
 			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace}, Extras])
 		when Class =:= exit; Class =:= error; Class =:= throw ->
 	{User, ExtrasWithoutUser} = extract_user(Extras),
+	ExtrasLevel = proplists:get_value(level, Extras, false),
+	TheLevel = ExtrasLevel orelse Level,
 	{format(Format, [{Class, Reason}, Extras]), [
-		{level, Level},
+		{level, TheLevel},
 		{exception, {Class, Reason}},
 		{stacktrace, Stacktrace},
 		{extra, [
