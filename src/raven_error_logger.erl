@@ -284,8 +284,10 @@ parse_message(Level, Pid, "Exception: ~p\n"
 			  [{{Class, Reason}, [{_, _, _, _} | _] = Stacktrace}, Extras])
 		when Class =:= exit; Class =:= error; Class =:= throw ->
 	{User, ExtrasWithoutUser} = extract_user(Extras),
+	ExtrasLevel = proplists:get_value(level, Extras, false),
+	TheLevel = ExtrasLevel orelse Level,
 	{format(Format, [{Class, Reason}, Extras]), [
-		{level, Level},
+		{level, TheLevel},
 		{exception, {Class, Reason}},
 		{stacktrace, Stacktrace},
 		{extra, [
