@@ -25,9 +25,11 @@ start(_StartType, _StartArgs) ->
 		{ok, _} ->
 			case application:get_env(error_logger) of
 				{ok, true} ->  error_logger:add_report_handler(raven_error_logger);
-				{ok, false} -> logger:add_handler(logger_backend, raven_logger_backend, #{level => error
+				{ok, false} -> logger:add_handler(logger_backend, raven_logger_backend, #{level => warning
 						, filter_default => log
-						, filters => [{f1, {fun logger_filters:domain/2, {stop, equal, [ssl]}}}]});
+						, filters => [{ssl, {fun logger_filters:domain/2, {stop, sub, [ssl]}}}
+						             ,{sasl, {fun logger_filters:domain/2, {stop, sub, [otp, sasl]}}}
+									 ]});
 				_ -> ok
 			end,
 			raven_sup:start_link();
