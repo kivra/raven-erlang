@@ -1,6 +1,5 @@
 -module(raven_logger_backend).
--export([
-	log/2
+-export([ log/2
 ]).
 
 
@@ -20,15 +19,22 @@ is_raven_log(#{meta := Meta} = _LogEvent) ->
 
 get_msg(#{msg := MsgList} = _LogEvent) ->
 	case MsgList of
-		{string, Msg}  -> Msg;
-		{report, _Msg} -> "rapport";
-		{_, _Msg}      -> "not expected"
+		{string, Msg}   -> Msg;
+		{report, Msg}   -> parse_report_msg(Msg);
+		{Format, _Args} when is_list(Format) ->
+						   Format;
+		{_, _Args}      -> "unexpected"
 	end.
+
+parse_report_msg(#{format := Format} = Report) when is_map(Report)->
+	Format;
+parse_report_msg(_) ->
+	"Not a map".
 
 parse_message(LogEvent) ->
 	Meta = maps:get(meta, LogEvent),
 	Msg  = get_msg(LogEvent),
-	Level = maps:get(level, LogEvent),
+	Level = sentry_level(maps:get(level, LogEvent)),
 	[
 		{level, Level},
 %		{exception, {Class, Reason}},
@@ -44,3 +50,5 @@ parse_message(LogEvent) ->
 		]}
 	].
 
+sentry_level(notice) -> info;
+sentry_level(Level) -> Level.
