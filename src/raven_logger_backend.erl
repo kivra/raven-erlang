@@ -21,15 +21,18 @@ get_msg(#{msg := MsgList} = _LogEvent) ->
 	case MsgList of
 		{string, Msg}   -> Msg;
 		{report, Msg}   -> parse_report_msg(Msg);
-		{Format, _Args} when is_list(Format) ->
-						   Format;
-		{_, _Args}      -> "unexpected"
+		{Format, Args} when is_list(Format) ->
+						   make_readable(Format, Args);
+		{_, _}	        -> "unexpected log format"
 	end.
 
-parse_report_msg(#{format := Format} = Report) when is_map(Report)->
-	Format;
+parse_report_msg(#{format := Format, args := Args} = Report) when is_map(Report)->
+	make_readable(Format, Args);
 parse_report_msg(_) ->
 	"Not a map".
+
+make_readable(Format, Args) ->
+	iolist_to_binary(io_lib:format(Format, Args)).
 
 parse_message(LogEvent) ->
 	Meta = maps:get(meta, LogEvent),
@@ -39,15 +42,10 @@ parse_message(LogEvent) ->
 		{level, Level},
 %		{exception, {Class, Reason}},
 %		{stacktrace, Stacktrace},
-		{extra, [
-			{name, "Name"},
-			{pid, maps:get(pid, Meta)},
-			{last_event, "LastEvent"},
-			{state_name, "StateName"},
-			{state_data, "StateData"},
-			{callback_mode, "CallbackMode"},
-			{reason, LogEvent}
-		]}
+		{extra, lists:append(maps:to_list(Meta),
+			[ {logEvent, LogEvent}
+			, {reason, Msg}
+			])}
 	].
 
 sentry_level(notice) -> info;
