@@ -1,36 +1,33 @@
 -module(raven_send_sentry_safe).
 
--behaviour(gen_event).
+-behaviour(gen_server).
 
--export([start/0, stop/0, notify/1, notify/2, request/1]).
+-export([start/0, start_link/0, stop/0, notify/1, notify/2]).
 
--export([init/1, terminate/2, handle_call/2, handle_event/2]).
-
--define(MGR, send_safe_mgr).
+-export([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 
 %% API
 
 start() ->
-  Mgr = start_mgr(),
-  start_handler(Mgr).
+  gen_server:start({local, ?MODULE}, ?MODULE, undefined, []).
+
+start_link() ->
+  gen_server:start_link({local, ?MODULE}, ?MODULE, undefined, []).
 
 stop() ->
-  gen_event:stop(?MGR).
+  gen_server:stop(?MODULE).
 
 notify(Event) ->
-  gen_event:notify(?MGR, Event).
+  gen_server:cast(?MODULE, {notify, Event}).
 
+%% Test
 notify(_Event, N) when N =< 0 ->
   ok;
 notify(Event, N) ->
-  gen_event:notify(?MGR, Event),
+  notify({N, Event}),
   notify(Event, N-1).
 
-request(Request) ->
-  ID = gen_event:send_request(?MGR, ?MODULE, Request),
-  gen_event:receive_response(ID, 1000).
-
-%% gen_event callbacks
+%% gen_server callbacks
 
 init(Arg) ->
   io:format("init(~p)~n", [Arg]),
@@ -40,56 +37,47 @@ terminate(Arg, State) ->
   io:format("terminate(~p,~p)~n", [Arg, State]),
   ok.
 
-handle_call(Request, State) ->
-  io:format("handle_call(~p,~p)~n", [Request, State]),
-  {ok, {self(),whereis(?MGR)}, State}.
+handle_call(Request, From, State) ->
+  io:format("handle_call(~p,~p,~p)~n", [Request, From, State]),
+  {reply, ok, State}.
 
-handle_event(Event, State) ->
-  io:format("handle_event(~p,~p)~n", [Event, State]),
+handle_cast(Request = {notify, Event}, State) ->
+  io:format("handle_cast(~p,~p)~n", [Request, State]),
   Qlen = qlen(),
   if
     Qlen > 10 ->
       io:format("    skip, to long queue (~p)~n", [Qlen]),
-      {ok, State};
+      {noreply, State};
     true ->
       #{backoff_until := Bou} = State,
       Now = current_time(),
       if
         Bou > Now ->
           io:format("    skip, to backoff~n", []),
-          {ok, State};
+          {noreply, State};
         true ->
-          {ok, BackoffUntil} = send_to_sentry(),
-          io:format("    sent to sentry~n", []),
-          {ok, State#{backoff_until => BackoffUntil}}
+          io:format("    sending~n", []),
+          {ok, BackoffUntil} = send_to_sentry(Event),
+          io:format("    sent~n", []),
+          {noreply, State#{backoff_until => BackoffUntil}}
       end
-  end.
+  end;
+handle_cast(Request, State) ->
+  io:format("handle_cast(~p,~p)~n", [Request, State]),
+  {ok, State}.
+
+handle_info(Info, State) ->
+  io:format("handle_info(~p,~p)~n", [Info, State]),
+  {noreply, State}.
 
 %% Local
 
-start_mgr() ->
-  case gen_event:start({local,?MGR}) of
-    {ok, Mgr} ->
-      Mgr;
-    {error, {already_started, Mgr}} ->
-      Mgr
-  end.
-
-start_handler(Mgr) ->
-  Handlers = gen_event:which_handlers(Mgr),
-  case lists:member(?MODULE, Handlers) of
-    true ->
-      already_started;
-    false ->
-      ok = gen_event:add_handler(Mgr, ?MODULE, foo)
-  end.
-
 qlen() ->
   {message_queue_len, Qlen} =
-    erlang:process_info(whereis(?MGR), message_queue_len),
+    erlang:process_info(self(), message_queue_len),
   Qlen.
 
-send_to_sentry() ->
+send_to_sentry(_Event) ->
   timer:sleep(1000),
   {ok, current_time()}.
 
