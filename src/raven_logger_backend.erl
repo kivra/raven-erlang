@@ -7,7 +7,7 @@ log(LogEvent, _Config) ->
 	case is_raven_log(LogEvent) of
 		true  -> ok; % Dropping raven log, prevents log loop
 		false ->
-		raven:capture(get_msg(LogEvent), parse_message(LogEvent))
+		raven_send_sentry_safe:capture(get_msg(LogEvent), parse_message(LogEvent))
 	end.
 
 is_raven_log(#{meta := Meta} = _LogEvent) ->

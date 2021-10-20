@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start/0, start_link/0, stop/0, notify/1, notify/2]).
+-export([start/0, start_link/0, stop/0, capture/2]).
 
 -export([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 
@@ -17,15 +17,9 @@ start_link() ->
 stop() ->
   gen_server:stop(?MODULE).
 
-notify(Event) ->
-  gen_server:cast(?MODULE, {notify, Event}).
+capture(Message, Args) ->
+  gen_server:cast(?MODULE, {capture, Message, Args}).
 
-%% Test
-notify(_Event, N) when N =< 0 ->
-  ok;
-notify(Event, N) ->
-  notify({N, Event}),
-  notify(Event, N-1).
 
 %% gen_server callbacks
 
@@ -41,7 +35,7 @@ handle_call(Request, From, State) ->
   io:format("handle_call(~p,~p,~p)~n", [Request, From, State]),
   {reply, ok, State}.
 
-handle_cast(Request = {notify, Event}, State) ->
+handle_cast(Request = {capture, Message, Args}, State) ->
   io:format("handle_cast(~p,~p)~n", [Request, State]),
   Qlen = qlen(),
   if
@@ -57,7 +51,7 @@ handle_cast(Request = {notify, Event}, State) ->
           {noreply, State};
         true ->
           io:format("    sending~n", []),
-          {ok, BackoffUntil} = send_to_sentry(Event),
+          {ok, BackoffUntil} = raven_capture(Message, Args),
           io:format("    sent~n", []),
           {noreply, State#{backoff_until => BackoffUntil}}
       end
@@ -77,9 +71,13 @@ qlen() ->
     erlang:process_info(self(), message_queue_len),
   Qlen.
 
-send_to_sentry(_Event) ->
-  timer:sleep(1000),
-  {ok, current_time()}.
+raven_capture(Message, Args) ->
+  case raven:capture(Message, Args) of
+    ok ->
+      {ok, current_time()};
+    {ok, Seconds} ->
+      {ok, current_time() + Seconds*1_000_000}
+  end.
 
 current_time() ->
   erlang:system_time(microsecond).
