@@ -1,6 +1,7 @@
 -module(raven).
 -export([
 	capture/2,
+	captureBackoff/3,
 	user_agent/0
 ]).
 
@@ -28,6 +29,8 @@
 capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
+	captureBackoff(Message, Params, false).
+captureBackoff(Message, Params, Synchronized) ->
 	Cfg = get_config(),
 	Document = [
 		{event_id, event_id_i()},
@@ -83,12 +86,29 @@ capture(Message, Params) ->
 		{"User-Agent", UA}
 	],
 	ok = httpc:set_options([{ipfamily, Cfg#cfg.ipfamily}]),
-	httpc:request(post,
+	{ok, Result} = httpc:request(post,
 		{Cfg#cfg.uri ++ "/api/store/", Headers, "application/octet-stream", Body},
 		[],
-		[{body_format, binary}, {sync, false}]
+		[{body_format, binary}, {sync, Synchronized}]
 	),
-	ok.
+	case Synchronized of
+		false -> ok;
+		true  -> {ok, extract_backoff(Result)}
+	end.
+
+extract_backoff(Result)  when is_reference(Result) ->
+	io:format("~nHTTP return was reference ~p~n", [Result]),
+	0;
+extract_backoff({StatusLine, Headers, _Body}) ->
+	{_,ResponseCode, _} = StatusLine,
+	case ResponseCode of
+		429 ->
+			Backoff = list_to_integer(proplists:get_value("retry-after", Headers)),
+			io:format("       retry:  ~p~n", [Backoff]),
+			Backoff;
+		_   ->
+			0
+	end.
 
 -spec user_agent() -> iolist().
 user_agent() ->

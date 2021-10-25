@@ -4,13 +4,13 @@
 
 
 log(LogEvent, _Config) ->
-	case is_raven_log(LogEvent) of
-		true  -> ok; % Dropping raven log, prevents log loop
+	case is_httpc_log(LogEvent) of
+		true -> ok; %Dropping httpc log, prevents log loop
 		false ->
 		raven_send_sentry_safe:capture(get_msg(LogEvent), parse_message(LogEvent))
 	end.
 
-is_raven_log(#{meta := Meta} = _LogEvent) ->
+is_httpc_log(#{meta := Meta} = _LogEvent) ->
 	case maps:is_key(report_cb, Meta) of
 		false -> false;
 		true  -> #{report_cb := Report} = Meta,
@@ -28,8 +28,10 @@ get_msg(#{msg := MsgList} = _LogEvent) ->
 
 parse_report_msg(#{format := Format, args := Args} = Report) when is_map(Report)->
 	make_readable(Format, Args);
+parse_report_msg(#{description := Description} = Report) when is_map(Report)->
+	Description;
 parse_report_msg(_) ->
-	"Not a map".
+	"Not a expected format".
 
 make_readable(Format, Args) ->
 	iolist_to_binary(io_lib:format(Format, Args)).
