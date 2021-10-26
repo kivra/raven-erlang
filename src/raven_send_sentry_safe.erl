@@ -23,17 +23,14 @@ capture(Message, Args) ->
 
 %% gen_server callbacks
 
-init(Arg) ->
-  io:format("init(~p)~n", [Arg]),
+init(_Arg) ->
   logger:update_process_metadata(#{domain => [raven]}),
   {ok, #{backoff_until => current_time()}}.
 
-terminate(Arg, State) ->
-  io:format("terminate(~p,~p)~n", [Arg, State]),
+terminate(_Arg, _State) ->
   ok.
 
-handle_call(Request, From, State) ->
-  io:format("handle_call(~p,~p,~p)~n", [Request, From, State]),
+handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
 handle_cast(_Request = {capture, Message, Args}, State) ->
@@ -48,23 +45,16 @@ handle_cast(_Request = {capture, Message, Args}, State) ->
       if
         Bou > Now ->
           logger:warning(<<"Sentry dropped log event">>),
-          io:format("    skip, until backoff~n", []),
-          io:format("    now:     ~p~n", [calendar:system_time_to_universal_time(Now, microsecond)]),
-          io:format("    backoff: ~p~n", [calendar:system_time_to_universal_time(Bou, microsecond)]),
           {noreply, State};
         true ->
-          io:format("    sending~n", []),
           {ok, BackoffUntil} = raven_capture(Message, Args),
-          io:format("    sent~n", []),
           {noreply, State#{backoff_until => BackoffUntil}}
       end
   end;
-handle_cast(Request, State) ->
-  io:format("handle_cast(~p,~p)~n", [Request, State]),
+handle_cast(_Request, State) ->
   {ok, State}.
 
-handle_info(Info, State) ->
-  io:format("handle_info(~p,~p)~n", [Info, State]),
+handle_info(_Info, State) ->
   {noreply, State}.
 
 %% Local
