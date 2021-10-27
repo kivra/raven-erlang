@@ -37,17 +37,29 @@ make_readable(Format, Args) ->
 	iolist_to_binary(io_lib:format(Format, Args)).
 
 parse_message(LogEvent) ->
-	Meta = maps:get(meta, LogEvent),
-	Msg  = get_msg(LogEvent),
-	Level = sentry_level(maps:get(level, LogEvent)),
+	Meta       = maps:get(meta, LogEvent),
+	Msg        = get_msg(LogEvent),
+	Level      = sentry_level(maps:get(level, LogEvent)),
+	Exception  = maps:get(exception, Meta, []),
+	Stacktrace = maps:get(stacktrace, Meta, []),
+	lists:append(create_error_list(Exception, Stacktrace),
 	[
 		{level, Level},
-%		{exception, {Class, Reason}},
-%		{stacktrace, Stacktrace},
 		{extra, lists:append(maps:to_list(Meta),
 			[ {logEvent, LogEvent}
 			, {reason, Msg}
 			])}
+	]).
+
+create_error_list([], []) ->
+	[];
+create_error_list(Exception, []) ->
+	[{exception, Exception}];
+create_error_list([], Stacktrace) ->
+	[{stacktrace, Stacktrace}];
+create_error_list(Exception, Stacktrace) ->
+	[ {exception,  Exception}
+	, {stacktrace, Stacktrace}
 	].
 
 sentry_level(notice) -> info;
