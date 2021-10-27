@@ -38,11 +38,10 @@ make_readable(Format, Args) ->
 
 parse_message(LogEvent) ->
 	Meta       = maps:get(meta, LogEvent),
+	ShortMeta  = maps:without([gl,pid,time], Meta),
 	Msg        = get_msg(LogEvent),
 	Level      = sentry_level(maps:get(level, LogEvent)),
-	Exception  = maps:get(exception, Meta, []),
-	Stacktrace = maps:get(stacktrace, Meta, []),
-	lists:append(create_error_list(Exception, Stacktrace),
+	lists:append(proplists:from_map(ShortMeta),
 	[
 		{level, Level},
 		{extra, lists:append(maps:to_list(Meta),
@@ -50,17 +49,6 @@ parse_message(LogEvent) ->
 			, {reason, Msg}
 			])}
 	]).
-
-create_error_list([], []) ->
-	[];
-create_error_list(Exception, []) ->
-	[{exception, Exception}];
-create_error_list([], Stacktrace) ->
-	[{stacktrace, Stacktrace}];
-create_error_list(Exception, Stacktrace) ->
-	[ {exception,  Exception}
-	, {stacktrace, Stacktrace}
-	].
 
 sentry_level(notice) -> info;
 sentry_level(Level) -> Level.
