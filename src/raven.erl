@@ -1,7 +1,7 @@
 -module(raven).
 -export([
 	capture/2,
-	captureBackoff/3,
+	capture_with_backoff/3,
 	user_agent/0
 ]).
 
@@ -29,8 +29,11 @@
 capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
-	captureBackoff(Message, Params, false).
-captureBackoff(Message, Params, Synchronized) ->
+	capture_with_backoff(Message, Params, false).
+
+%Synchronized set to true returns backoff
+%otherwise, it is not returned
+capture_with_backoff(Message, Params, Synchronized) ->
 	Cfg = get_config(),
 	Document = [
 		{event_id, event_id_i()},
