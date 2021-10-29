@@ -2,6 +2,7 @@
 -export([ log/2
 ]).
 
+-define(META_FILTER, [gl,pid,time,file,line,mfa,span_ctx]).
 
 log(LogEvent, _Config) ->
 	case is_httpc_log(LogEvent) of
@@ -17,7 +18,7 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 	end.
 
 get_msg(#{msg := MsgList, meta := #{error_logger := #{report_cb := Report_cb}}} = _LogEvent) when is_function(Report_cb)->
-	{report, UnformatedMsg}  =  MsgList,
+	{report, UnformatedMsg}  = MsgList,
 	{Format, Args}           = Report_cb(UnformatedMsg),
 	make_readable(Format, Args);
 get_msg(#{msg := MsgList} = _LogEvent) ->
@@ -32,6 +33,10 @@ parse_report_msg(#{format := Format, args := Args} = _Report) ->
 	make_readable(Format, Args);
 parse_report_msg(#{description := Description} = _Report) ->
 	Description;
+parse_report_msg(#{reason := Reason} = _Report) ->
+	Reason;
+parse_report_msg(#{error := Error} = _Report) ->
+	Error;
 parse_report_msg(_) ->
 	"Not an expected format".
 
@@ -40,7 +45,7 @@ make_readable(Format, Args) ->
 
 parse_message(LogEvent) ->
 	Meta       = maps:get(meta, LogEvent),
-	ShortMeta  = maps:without([gl,pid,time], Meta),
+	ShortMeta  = maps:without(?META_FILTER, Meta),
 	Msg        = get_msg(LogEvent),
 	Level      = sentry_level(maps:get(level, LogEvent)),
 	lists:append(proplists:from_map(ShortMeta),
