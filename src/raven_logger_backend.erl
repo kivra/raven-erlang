@@ -41,7 +41,11 @@ parse_report_msg(_) ->
 	"Not an expected format".
 
 make_readable(Format, Args) ->
-	iolist_to_binary(io_lib:format(Format, Args)).
+	try
+		iolist_to_binary(io_lib:format(Format, Args))
+	catch
+		Exception:Reason -> iolist_to_binary(io_lib:format("Error in log format string: ~p:~p", [Exception, Reason]))
+	end.
 
 parse_message(LogEvent) ->
 	Meta       = maps:get(meta, LogEvent),
