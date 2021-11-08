@@ -16,10 +16,9 @@
 start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-
 %% @hidden
 init([]) ->
-	{ok, {
-		{one_for_one, 5, 10}, [
-		]
-	}}.
+  Config = {one_for_one, 5, 10},
+  SendSentrySafe = ?WORKER(raven_send_sentry_safe, start_link, [], permanent),
+  Workers = [SendSentrySafe],
+  {ok, {Config, Workers}}.
