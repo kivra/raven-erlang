@@ -17,7 +17,11 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 				 Report =:= fun ssl_logger:format/1
 	end.
 
-get_msg(#{msg := MsgList, meta := #{error_logger := #{report_cb := Report_cb}}} = _LogEvent) when is_function(Report_cb)->
+get_msg(#{msg := MsgList, meta := #{error_logger := #{report_cb := Report_cb}}} = _LogEvent) when is_function(Report_cb) ->
+	{report, UnformatedMsg}  = MsgList,
+	{Format, Args}           = Report_cb(UnformatedMsg),
+	make_readable(Format, Args);
+get_msg(#{msg := MsgList, meta := #{report_cb := Report_cb}} = _LogEvent) when is_function(Report_cb) ->
 	{report, UnformatedMsg}  = MsgList,
 	{Format, Args}           = Report_cb(UnformatedMsg),
 	make_readable(Format, Args);
