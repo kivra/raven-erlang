@@ -17,32 +17,33 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 				 Report =:= fun ssl_logger:format/1
 	end.
 
-get_msg(#{msg := MsgList, meta := #{error_logger := #{report_cb := Report_cb}}} = _LogEvent) when is_function(Report_cb) ->
-	{report, UnformatedMsg}  = MsgList,
-	{Format, Args}           = Report_cb(UnformatedMsg),
-	make_readable(Format, Args);
-get_msg(#{msg := MsgList, meta := #{report_cb := Report_cb}} = _LogEvent) when is_function(Report_cb) ->
-	{report, UnformatedMsg}  = MsgList,
-	{Format, Args}           = Report_cb(UnformatedMsg),
-	make_readable(Format, Args);
-get_msg(#{msg := MsgList} = _LogEvent) ->
+get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
 	case MsgList of
 		{string, Msg}                       -> Msg;
-		{report, Msg}                       -> parse_report_msg(Msg);
+		{report, Report}                    -> get_msg_from_report(Report, Meta);
 		{Format, Args} when is_list(Format) -> make_readable(Format, Args);
-		{_, _}	                            -> "Unexpected log format"
+		_                                   -> "Not an expected log format"
 	end.
 
-parse_report_msg(#{format := Format, args := Args} = _Report) ->
+%% Specific choice of msg
+get_msg_from_report(#{format := Format, args := Args} = _Report, _Meta) ->
 	make_readable(Format, Args);
-parse_report_msg(#{description := Description} = _Report) ->
+get_msg_from_report(#{description := Description} = _Report, _Meta) ->
 	Description;
-parse_report_msg(#{reason := Reason} = _Report) ->
+get_msg_from_report(#{reason := Reason} = _Report, _Meta) ->
 	Reason;
-parse_report_msg(#{error := Error} = _Report) ->
+get_msg_from_report(#{error := Error} = _Report, _Meta) ->
 	Error;
-parse_report_msg(_) ->
-	"Not an expected format".
+%% If no specific choice, then use provided report_cb
+get_msg_from_report(Report, #{error_logger := #{report_cb := Report_cb}} = _Meta) when is_function(Report_cb) ->
+	{Format, Args} = Report_cb(Report),
+	make_readable(Format, Args);
+get_msg_from_report(Report, #{report_cb := Report_cb} = _Meta) when is_function(Report_cb) ->
+	{Format, Args} = Report_cb(Report),
+	make_readable(Format, Args);
+%% If nothing provided, then give up
+get_msg_from_report(_Report, _Meta) ->
+	"Not an expected report log format".
 
 make_readable(Format, Args) ->
 	try
