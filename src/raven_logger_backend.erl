@@ -7,7 +7,10 @@
 log(LogEvent, _Config) ->
 	case is_httpc_log(LogEvent) of
 		true  -> ok; %Dropping httpc log, prevents log loop
-		false -> raven_send_sentry_safe:capture(get_msg(LogEvent), parse_message(LogEvent))
+		false ->
+			Message = get_msg(LogEvent),
+			Args = get_args(Message, LogEvent),
+			raven_send_sentry_safe:capture(Message, Args)
 	end.
 
 is_httpc_log(#{meta := Meta} = _LogEvent) ->
@@ -19,10 +22,10 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 
 get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
 	case MsgList of
-		{string, Msg}                       -> Msg;
-		{report, Report}                    -> get_msg_from_report(Report, Meta);
-		{Format, Args} when is_list(Format) -> make_readable(Format, Args);
-		_                                   -> "Not an expected log format"
+		{string, Msg}                        -> Msg;
+		{report, Report}                     -> get_msg_from_report(Report, Meta);
+		{Format, _Args} when is_list(Format) -> Format;
+		_                                    -> "Not an expected log format"
 	end.
 
 %% Specific choice of msg
@@ -52,17 +55,33 @@ make_readable(Format, Args) ->
 		Exception:Reason -> iolist_to_binary(io_lib:format("Error in log format string: ~p:~p", [Exception, Reason]))
 	end.
 
-parse_message(LogEvent) ->
-	Meta       = maps:get(meta, LogEvent),
-	ShortMeta  = maps:without(?META_FILTER, Meta),
-	Msg        = get_msg(LogEvent),
+get_args(Message, LogEvent) ->
 	Level      = sentry_level(maps:get(level, LogEvent)),
-	lists:append(proplists:from_map(ShortMeta),
-	    [ {level, Level}
-		, {extra, lists:append(maps:to_list(Meta)
-			, [ {logEvent, LogEvent}
-			  , {reason, Msg}
-			  ])}]).
+	Meta       = maps:get(meta, LogEvent),
+	MetaBasic  = maps:without(?META_FILTER, Meta),
+	MetaExtra  = maps:with(?META_FILTER, Meta),
+	Msg        = maps:get(msg, LogEvent),
+	Reason     = Message,
+	Basic      = MetaBasic#{level => Level},
+	Extra      = get_extra(Reason, MetaExtra, Msg),
+
+	BasicList  = proplists:from_map(Basic),
+	ExtraList  = proplists:from_map(Extra),
+
+	BasicList ++ [{extra, ExtraList}].
 
 sentry_level(notice) -> info;
 sentry_level(Level) -> Level.
+
+get_extra(Reason, ExtraMeta, {report, Report}) ->
+	Extra = maps:merge(ExtraMeta, Report),
+	Extra#{reason => Reason};
+get_extra(Reason, ExtraMeta, {string, _String}) ->
+	ExtraMeta#{reason => Reason};
+get_extra(Reason, ExtraMeta, {Format, Args}) when is_list(Format) ->
+	Msg = make_readable(Format, Args),
+	ExtraMeta#{ reason => Reason
+	          , msg => Msg};
+get_extra(Reason, ExtraMeta, Msg) ->
+	ExtraMeta#{ reason => Reason
+                  , msg => Msg}.
