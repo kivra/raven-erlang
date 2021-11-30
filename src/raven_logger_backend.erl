@@ -85,3 +85,129 @@ get_extra(Reason, ExtraMeta, {Format, Args}) when is_list(Format) ->
 get_extra(Reason, ExtraMeta, Msg) ->
 	ExtraMeta#{ reason => Reason
                   , msg => Msg}.
+
+%%%_* Tests ============================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+logger_backend_test_() ->
+  { setup,
+    fun test_setup/0,
+    fun test_teardown/1,
+    [ fun test_log_unknown/0,
+      fun test_log_string/0,
+      fun test_log_format/0,
+      fun test_log_report/0,
+      fun test_log_unknown_report/0
+    ]
+  }.
+
+test_setup() ->
+  meck:new(raven_send_sentry_safe),
+  meck:new(httpc),
+  meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
+  meck:expect(httpc, set_options, 1, fun(_) -> ok end),
+  meck:expect(httpc, request, 4, fun mock_request/4),
+  application:start(raven), %% To se key vsn
+  application:set_env(raven, ipfamily, dummy),
+  application:set_env(raven, uri, "http://foo"),
+  application:set_env(raven, public_key, <<"hello">>),
+  application:set_env(raven, private_key, <<"there">>),
+  application:set_env(raven, project, "terraform mars").
+
+test_teardown(_) ->
+  meck:unload([raven_send_sentry_safe]),
+  meck:unload([httpc]),
+  application:unset_env(raven, ipfamily),
+  application:unset_env(raven, uri),
+  application:unset_env(raven, public_key),
+  application:unset_env(raven, private_key),
+  application:unset_env(raven, project),
+  application:stop(raven).
+
+test_log_unknown() ->
+  Msg = "whatisthis",
+  Message = "Not an expected log format",
+  Args =[{correlation_id,"123456789"},
+         {level,info},
+         {extra,[{line, 214},
+                 {msg, "whatisthis"},
+                 {reason,"Not an expected log format"}]}],
+  run(Msg, Message, Args).
+
+test_log_string() ->
+  Msg = {string, "foo"},
+  Message = "foo",
+  Args =[{correlation_id,"123456789"},
+         {level,info},
+         {extra,[{line, 214},
+                 {reason,"foo"}]}],
+  run(Msg, Message, Args).
+
+test_log_format() ->
+  Msg = {"Foo ~p", [14]},
+  Message = "Foo ~p",
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {extra,[{line, 214},
+                  {msg,<<"Foo 14">>},
+                  {reason,"Foo ~p"}]}],
+  run(Msg, Message, Args).
+
+test_log_report() ->
+  Msg = {report, #{description => "gunnar",
+                   a => "foo",
+                   b => "bar"}},
+  Message = "gunnar",
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {extra,[{a,"foo"},
+                  {b,"bar"},
+                  {description,"gunnar"},
+                  {line, 214},
+                  {reason,"gunnar"}]}],
+  run(Msg, Message, Args).
+
+test_log_unknown_report() ->
+  Msg = {report, #{a => "foo",
+                   b => "bar"}},
+  Message = "Not an expected report log format",
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {extra,[{a,"foo"},
+                  {b,"bar"},
+                  {line, 214},
+                  {reason,"Not an expected report log format"}]}],
+  run(Msg, Message, Args).
+
+run(Msg, ExpectedMessage, ExpectedArgs) ->
+  meck:reset([raven_send_sentry_safe, httpc]),
+  Event = event(Msg),
+  log(Event, []),
+  [{_Pid, MFA, _}] = meck:history(raven_send_sentry_safe),
+  {raven_send_sentry_safe, capture, [Message, Args]} = MFA,
+  ?assertEqual(ExpectedMessage, Message),
+  ?assertEqual(sort_args(ExpectedArgs), sort_args(Args)).
+
+event(Msg) ->
+  Level = info,
+  Meta = meta(),
+  #{level => Level, meta => Meta, msg => Msg}.
+
+meta() ->
+  #{correlation_id => "123456789",
+    line => 214}.
+
+sort_args(Args) ->
+  SortedExtras = lists:sort(proplists:get_value(extra, Args)),
+  lists:sort([{extra, SortedExtras} | proplists:delete(extra, Args)]).
+
+mock_capture(Message, Args) ->
+  raven:capture(Message, Args).
+
+mock_request(_Op, {_Path, _Headers, _Type, Body}, _, _) ->
+  Decoded = jsx:decode(zlib:uncompress(base64:decode(Body))),
+  io:format(user, "~n~p~n", [Decoded]),
+  {ok, {{foo,200,bar},[],<<"body">>}}.
+
+-endif.

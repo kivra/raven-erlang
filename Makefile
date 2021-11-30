@@ -1,7 +1,7 @@
 PROJECT = raven
 
 DIALYZER = dialyzer
-REBAR = rebar
+REBAR = rebar3
 
 all: app
 
