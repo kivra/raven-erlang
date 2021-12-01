@@ -68,7 +68,13 @@ get_args(Message, LogEvent) ->
 	BasicList  = proplists:from_map(Basic),
 	ExtraList  = proplists:from_map(Extra),
 
-	BasicList ++ [{extra, ExtraList}].
+	case maps:get(correlation_id, Meta, undefined) of
+		undefined ->
+			BasicList ++ [{extra, ExtraList}];
+		CorrelationID ->
+			BasicList ++ [{extra, ExtraList},
+                                      {tags, [{correlation_id, CorrelationID}]}]
+	end.
 
 sentry_level(notice) -> info;
 sentry_level(Level) -> Level.
@@ -128,20 +134,22 @@ test_teardown(_) ->
 test_log_unknown() ->
   Msg = "whatisthis",
   Message = "Not an expected log format",
-  Args =[{correlation_id,"123456789"},
-         {level,info},
-         {extra,[{line, 214},
-                 {msg, "whatisthis"},
-                 {reason,"Not an expected log format"}]}],
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {tags, [{correlation_id, "123456789"}]},
+          {extra,[{line, 214},
+                  {msg, "whatisthis"},
+                  {reason,"Not an expected log format"}]}],
   run(Msg, Message, Args).
 
 test_log_string() ->
   Msg = {string, "foo"},
   Message = "foo",
-  Args =[{correlation_id,"123456789"},
-         {level,info},
-         {extra,[{line, 214},
-                 {reason,"foo"}]}],
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {tags, [{correlation_id, "123456789"}]},
+          {extra,[{line, 214},
+                  {reason,"foo"}]}],
   run(Msg, Message, Args).
 
 test_log_format() ->
@@ -149,6 +157,7 @@ test_log_format() ->
   Message = "Foo ~p",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg,<<"Foo 14">>},
                   {reason,"Foo ~p"}]}],
@@ -161,6 +170,7 @@ test_log_report() ->
   Message = "gunnar",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {description,"gunnar"},
@@ -174,6 +184,7 @@ test_log_unknown_report() ->
   Message = "Not an expected report log format",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {line, 214},
