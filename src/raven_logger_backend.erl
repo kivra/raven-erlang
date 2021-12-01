@@ -25,7 +25,7 @@ get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
 		{string, Msg}                        -> Msg;
 		{report, Report}                     -> get_msg_from_report(Report, Meta);
 		{Format, _Args} when is_list(Format) -> Format;
-		_                                    -> "Not an expected log format"
+		_                                    -> unexpected_log_format(Meta)
 	end.
 
 %% Specific choice of msg
@@ -45,8 +45,13 @@ get_msg_from_report(Report, #{report_cb := Report_cb} = _Meta) when is_function(
 	{Format, Args} = Report_cb(Report),
 	make_readable(Format, Args);
 %% If nothing provided, then give up
-get_msg_from_report(_Report, _Meta) ->
-	"Not an expected report log format".
+get_msg_from_report(_Report, Meta) ->
+	unexpected_log_format(Meta).
+
+unexpected_log_format(Meta) ->
+  	Module = maps:get(module, Meta),
+	"Unexpected log format in module: " ++ atom_to_list(Module).
+
 
 make_readable(Format, Args) ->
 	try
@@ -134,13 +139,14 @@ test_teardown(_) ->
 
 test_log_unknown() ->
   Msg = "whatisthis",
-  Message = "Not an expected log format",
+  Message = "Unexpected log format in module: ievan_polka",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg, "whatisthis"},
-                  {reason,"Not an expected log format"}]}],
+                  {reason,"Unexpected log format in module: ievan_polka"}]}],
   run(Msg, Message, Args).
 
 test_log_string() ->
@@ -148,6 +154,7 @@ test_log_string() ->
   Message = "foo",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {reason,"foo"}]}],
@@ -158,6 +165,7 @@ test_log_format() ->
   Message = "Foo ~p",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg,<<"Foo 14">>},
@@ -171,6 +179,7 @@ test_log_report() ->
   Message = "gunnar",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
@@ -186,6 +195,7 @@ test_log_report_with_compound_description() ->
   Message = {namn, "gunnar"},
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
@@ -197,14 +207,15 @@ test_log_report_with_compound_description() ->
 test_log_unknown_report() ->
   Msg = {report, #{a => "foo",
                    b => "bar"}},
-  Message = "Not an expected report log format",
+  Message = "Unexpected log format in module: ievan_polka",
   Args = [{correlation_id,"123456789"},
           {level,info},
+          {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {line, 214},
-                  {reason,"Not an expected report log format"}]}],
+                  {reason,"Unexpected log format in module: ievan_polka"}]}],
   run(Msg, Message, Args).
 
 run(Msg, ExpectedMessage, ExpectedArgs) ->
@@ -223,6 +234,7 @@ event(Msg) ->
 
 meta() ->
   #{correlation_id => "123456789",
+    module => ievan_polka,
     line => 214}.
 
 sort_args(Args) ->
