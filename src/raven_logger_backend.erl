@@ -104,6 +104,7 @@ logger_backend_test_() ->
       fun test_log_string/0,
       fun test_log_format/0,
       fun test_log_report/0,
+      fun test_log_report_with_compound_description/0,
       fun test_log_unknown_report/0
     ]
   }.
@@ -176,6 +177,21 @@ test_log_report() ->
                   {description,"gunnar"},
                   {line, 214},
                   {reason,"gunnar"}]}],
+  run(Msg, Message, Args).
+
+test_log_report_with_compound_description() ->
+  Msg = {report, #{description => {namn, "gunnar"},
+                   a => "foo",
+                   b => "bar"}},
+  Message = {namn, "gunnar"},
+  Args = [{correlation_id,"123456789"},
+          {level,info},
+          {tags, [{correlation_id, "123456789"}]},
+          {extra,[{a,"foo"},
+                  {b,"bar"},
+                  {description,{namn, "gunnar"}},
+                  {line, 214},
+                  {reason,{namn, "gunnar"}}]}],
   run(Msg, Message, Args).
 
 test_log_unknown_report() ->
