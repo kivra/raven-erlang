@@ -2,6 +2,7 @@
 -export([
 	capture/2,
 	capture_with_backoff/3,
+	capture_with_backoff_send/3, %% NOTE: to make it possible to mock the sending 
 	user_agent/0
 ]).
 
@@ -77,8 +78,11 @@ capture_with_backoff(Message, Params, Synchronized) ->
 				{Key, term_to_json_i(Value)}
 		end, Params)
 	],
-	Timestamp = integer_to_list(unix_timestamp_i()),
 	Body = base64:encode(zlib:compress(jsx:encode(Document))),
+	capture_with_backoff_send(Cfg, Body, Synchronized).
+
+capture_with_backoff_send(Cfg, Body, Synchronized) ->
+	Timestamp = integer_to_list(unix_timestamp_i()),
 	UA = user_agent(),
 	Headers = [
 		{"X-Sentry-Auth",

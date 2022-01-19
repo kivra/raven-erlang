@@ -4,13 +4,41 @@
 
 -define(META_FILTER, [gl,pid,time,file,line,mfa,span_ctx]).
 
+%% API
+
 log(LogEvent, _Config) ->
-	case is_httpc_log(LogEvent) of
+	try log(LogEvent)
+	catch _:Reason:StackTrace ->
+		LE = list_to_binary(lists:flatten(io_lib:format("~0p", [LogEvent]))),
+		ST = list_to_binary(lists:flatten(io_lib:format("~0p", [StackTrace]))),
+		logger:warning(#{message => <<"Raven logger backend crashed">>,
+				 crashing_message => LE,
+				 reason => Reason,
+				 stacktrace => ST})
+	end.
+
+%% Private
+
+log(LogEvent) ->
+	case is_loop(LogEvent) of
 		true  -> ok; %Dropping httpc log, prevents log loop
 		false ->
 			Message = get_msg(LogEvent),
 			Args = get_args(Message, LogEvent),
 			raven_send_sentry_safe:capture(Message, Args)
+	end.
+
+is_loop(LogEvent) ->
+	is_log_crash_log(LogEvent) or is_httpc_log(LogEvent).
+
+is_log_crash_log(#{msg := Msg} = _LogEvent) ->
+	case Msg of
+		{report, #{	message := <<"Raven logger backend crashed">>,
+				crashing_message := _,
+				reason := _}} ->
+			true;
+		_ ->
+			false
 	end.
 
 is_httpc_log(#{meta := Meta} = _LogEvent) ->
