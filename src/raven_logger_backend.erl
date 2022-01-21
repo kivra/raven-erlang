@@ -70,8 +70,8 @@ get_args(Message, LogEvent) ->
 	Basic      = MetaBasic#{level => Level},
 	Extra      = get_extra(Reason, MetaExtra, Msg),
 
-	BasicList  = proplists:from_map(Basic),
-	ExtraList  = proplists:from_map(Extra),
+	BasicList  = maps:to_list(Basic),
+	ExtraList  = maps:to_list(Extra),
 
 	case maps:get(correlation_id, Meta, undefined) of
 		undefined ->
