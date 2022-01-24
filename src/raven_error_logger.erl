@@ -494,7 +494,7 @@ parse_message(Level, Pid, "** Exception: ~p~n"
 						  ] = Data) ->
 	ExceptionValue =
 		case Args of
-			[Arg1|_] when is_atom(Arg1) -> {M, F, [Arg1|'_']};
+			[Arg1|_] when is_atom(Arg1) -> {M, F, [Arg1, '...']};
 			_                           -> {M, F, length(Args)}
 		end,
 	{format(Format, Data), [
@@ -640,24 +640,6 @@ parse_report(Level, Pid, supervisor_report, [{errorContext, Context}, {offender,
 			{restart_type, proplists:get_value(restart_type, Offender)},
 			{child_type, proplists:get_value(child_type, Offender)},
 			{shutdown, proplists:get_value(shutdown, Offender)}
-		]}
-	]};
-parse_report(info, Pid, progress, [{started, Started}, {supervisor, Supervisor}]) ->
-	Message = case proplists:get_value(name, Started, []) of
-		[] -> format("Supervisor ~s started child", [format_name(Supervisor)]);
-		Name -> format("Supervisor ~s started ~s", [format_name(Supervisor), format_name(Name)])
-	end,
-	{Message, [
-		{level, info},
-		{logger, supervisors},
-		{extra, [
-			{supervisor, Supervisor},
-			{pid, Pid},
-			{child_pid, proplists:get_value(pid, Started)},
-			{mfa, format_mfa(proplists:get_value(mfargs, Started))},
-			{restart_type, proplists:get_value(restart_type, Started)},
-			{child_type, proplists:get_value(child_type, Started)},
-			{shutdown, proplists:get_value(shutdown, Started)}
 		]}
 	]};
 parse_report(Level, Pid, Type, Report) ->
