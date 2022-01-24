@@ -65,7 +65,8 @@ qlen() ->
   Qlen.
 
 raven_capture(Message, Args) ->
-  case raven:capture_with_backoff(Message, Args, true) of
+  {ok, Body} = raven:capture_prepare(Message, Args),
+  case raven:capture_with_backoff_send(Body, true) of
     ok ->
       {ok, current_time()};
     {ok, Seconds} ->

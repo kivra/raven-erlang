@@ -1,8 +1,8 @@
 -module(raven).
 -export([
 	capture/2,
-	capture_with_backoff/3,
-	capture_with_backoff_send/3, %% NOTE: to make it possible to mock the sending 
+	capture_prepare/2,
+	capture_with_backoff_send/2,
 	user_agent/0
 ]).
 
@@ -30,11 +30,10 @@
 capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
-	capture_with_backoff(Message, Params, false).
+	{ok, Body} = capture_prepare(Message, Params),
+	capture_with_backoff_send(Body, false).
 
-%Synchronized set to true returns backoff
-%otherwise, it is not returned
-capture_with_backoff(Message, Params, Synchronized) ->
+capture_prepare(Message, Params) ->
 	Cfg = get_config(),
 	Document = [
 		{event_id, event_id_i()},
@@ -79,9 +78,12 @@ capture_with_backoff(Message, Params, Synchronized) ->
 		end, Params)
 	],
 	Body = base64:encode(zlib:compress(jsx:encode(Document))),
-	capture_with_backoff_send(Cfg, Body, Synchronized).
+	{ok, Body}.
 
-capture_with_backoff_send(Cfg, Body, Synchronized) ->
+%Synchronized set to true returns backoff
+%otherwise, it is not returned
+capture_with_backoff_send(Body, Synchronized) ->
+	Cfg = get_config(),
 	Timestamp = integer_to_list(unix_timestamp_i()),
 	UA = user_agent(),
 	Headers = [
