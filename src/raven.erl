@@ -1,7 +1,8 @@
 -module(raven).
 -export([
 	capture/2,
-	capture_with_backoff/3,
+	capture_prepare/2,
+	capture_with_backoff_send/2,
 	user_agent/0
 ]).
 
@@ -29,11 +30,10 @@
 capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
-	capture_with_backoff(Message, Params, false).
+	{ok, Body} = capture_prepare(Message, Params),
+	capture_with_backoff_send(Body, false).
 
-%Synchronized set to true returns backoff
-%otherwise, it is not returned
-capture_with_backoff(Message, Params, Synchronized) ->
+capture_prepare(Message, Params) ->
 	Cfg = get_config(),
 	Document = [
 		{event_id, event_id_i()},
@@ -77,8 +77,14 @@ capture_with_backoff(Message, Params, Synchronized) ->
 				{Key, term_to_json_i(Value)}
 		end, Params)
 	],
-	Timestamp = integer_to_list(unix_timestamp_i()),
 	Body = base64:encode(zlib:compress(jsx:encode(Document))),
+	{ok, Body}.
+
+%Synchronized set to true returns backoff
+%otherwise, it is not returned
+capture_with_backoff_send(Body, Synchronized) ->
+	Cfg = get_config(),
+	Timestamp = integer_to_list(unix_timestamp_i()),
 	UA = user_agent(),
 	Headers = [
 		{"X-Sentry-Auth",

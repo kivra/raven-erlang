@@ -24,20 +24,28 @@ start(_StartType, _StartArgs) ->
 	case application:get_env(uri) of
 		{ok, _} ->
 			case application:get_env(error_logger) of
-				{ok, true} ->  error_logger:add_report_handler(raven_error_logger);
+				{ok, true} ->
+					error_logger:add_report_handler(raven_error_logger);
 				_ -> ok
 			end,
 			case application:get_env(otp_logger) of
-				{ok, true} ->  logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => warning
+				{ok, true} ->
+					logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => warning
 						, filter_default => log
 						, filters => [{ssl,      {fun logger_filters:domain/2, {stop, sub, [ssl]}}}
 									 ,{progress, {fun logger_filters:domain/2, {stop, equal, [progress]}}}
 									 ,{raven,    {fun logger_filters:domain/2, {stop, sub, [raven]}}}
 						             ,{sasl,     {fun logger_filters:domain/2, {stop, sub, [otp, sasl]}}}
 									 ]});
-				_ -> ok
+				_ ->
+					ok
 			end,
-			raven_sup:start_link();
+			case raven_sup:start_link() of
+				{ok, Pid} ->
+					{ok, Pid};
+				Error ->
+					Error
+			end;
 		_ ->
 			{error, missing_configuration}
 	end.
