@@ -21,18 +21,15 @@ stop() ->
 
 %% @hidden
 start(_StartType, _StartArgs) ->
-	erlang:display("Starting raven"),
 	case application:get_env(uri) of
 		{ok, _} ->
 			case application:get_env(error_logger) of
 				{ok, true} ->
-					erlang:display("Starting raven error_logger handler"),
 					error_logger:add_report_handler(raven_error_logger);
 				_ -> ok
 			end,
 			case application:get_env(otp_logger) of
 				{ok, true} ->
-					erlang:display("Starting raven otp logger handler"),
 					logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => warning
 						, filter_default => log
 						, filters => [{ssl,      {fun logger_filters:domain/2, {stop, sub, [ssl]}}}
@@ -40,13 +37,11 @@ start(_StartType, _StartArgs) ->
 									 ,{raven,    {fun logger_filters:domain/2, {stop, sub, [raven]}}}
 						             ,{sasl,     {fun logger_filters:domain/2, {stop, sub, [otp, sasl]}}}
 									 ]});
-				_ -> ok
+				_ ->
+					ok
 			end,
 			case raven_sup:start_link() of
 				{ok, Pid} ->
-					erlang:display("Started raven"),
-					logger:info(#{message => "Started raven",
-						      handlers => logger:get_handler_ids()}),
 					{ok, Pid};
 				Error ->
 					Error
