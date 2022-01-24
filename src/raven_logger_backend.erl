@@ -2,6 +2,7 @@
 -export([ log/2
 ]).
 
+-include_lib("kernel/include/logger.hrl").
 -define(META_FILTER, [gl,pid,time,file,line,mfa,span_ctx]).
 
 %% API
@@ -11,17 +12,17 @@ log(LogEvent, _Config) ->
 	catch _:Reason:StackTrace ->
 		LE = list_to_binary(lists:flatten(io_lib:format("~0p", [LogEvent]))),
 		ST = list_to_binary(lists:flatten(io_lib:format("~0p", [StackTrace]))),
-		logger:warning(#{message => <<"Raven logger backend crashed">>,
-				 crashing_message => LE,
-				 reason => Reason,
-				 stacktrace => ST})
+		?LOG_WARNING(#{ message => <<"Raven logger backend crashed">>,
+				crash_message => LE,
+				reason => Reason,
+				stacktrace => ST})
 	end.
 
 %% Private
 
 log(LogEvent) ->
 	case is_loop(LogEvent) of
-		true  -> ok; %Dropping httpc log, prevents log loop
+		true  -> ok; %% Dropping prevents log loop
 		false ->
 			Message = get_msg(LogEvent),
 			Args = get_args(Message, LogEvent),
@@ -33,9 +34,10 @@ is_loop(LogEvent) ->
 
 is_log_crash_log(#{msg := Msg} = _LogEvent) ->
 	case Msg of
-		{report, #{	message := <<"Raven logger backend crashed">>,
-				crashing_message := _,
-				reason := _}} ->
+		{report, #{ message := <<"Raven logger backend crashed">>,
+			    crash_message := _,
+			    reason := _,
+			    stacktrace := _}} ->
 			true;
 		_ ->
 			false
