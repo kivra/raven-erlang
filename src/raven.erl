@@ -6,6 +6,8 @@
 	user_agent/0
 ]).
 
+-include("raven.hrl").
+
 -define(SENTRY_VERSION, "2.0").
 
 -record(cfg, {
@@ -97,8 +99,9 @@ capture_with_backoff_send(Body, Synchronized) ->
 	ok = httpc:set_options([{ipfamily, Cfg#cfg.ipfamily}]),
 	{ok, Result} = httpc:request(post,
 		{Cfg#cfg.uri ++ "/api/store/", Headers, "application/octet-stream", Body},
-		[],
-		[{body_format, binary}, {sync, Synchronized}]
+		[ssl_options()],
+		[{body_format, binary}, {sync, Synchronized}],
+        ?RAVEN_HTTPC_PROFILE
 	),
 	case Synchronized of
 		false -> ok;
@@ -123,6 +126,9 @@ extract_backoff({StatusLine, Headers, _Body}) ->
 user_agent() ->
 	{ok, Vsn} = application:get_key(raven, vsn),
 	["raven-erlang/", Vsn].
+
+ssl_options() ->
+    persistent_term:get(?RAVEN_SSL_PERSIST_KEY).
 
 %% @private
 -spec get_config() -> cfg_rec().

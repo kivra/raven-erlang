@@ -3,6 +3,8 @@
 ]).
 
 -include_lib("kernel/include/logger.hrl").
+-include("raven.hrl").
+
 -define(META_FILTER, [gl,pid,time,file,line,mfa,span_ctx]).
 
 %% API
@@ -145,11 +147,12 @@ logger_backend_test_() ->
   }.
 
 test_setup() ->
+  persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []}),
   meck:new(raven_send_sentry_safe),
   meck:new(httpc),
   meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
   meck:expect(httpc, set_options, 1, fun(_) -> ok end),
-  meck:expect(httpc, request, 4, fun mock_request/4),
+  meck:expect(httpc, request, 5, fun mock_request/5),
   application:start(raven), %% To se key vsn
   application:set_env(raven, ipfamily, dummy),
   application:set_env(raven, uri, "http://foo"),
@@ -165,7 +168,9 @@ test_teardown(_) ->
   application:unset_env(raven, public_key),
   application:unset_env(raven, private_key),
   application:unset_env(raven, project),
-  application:stop(raven).
+  application:stop(raven),
+  persistent_term:erase(?RAVEN_SSL_PERSIST_KEY),
+  ok.
 
 test_log_unknown() ->
   Msg = "whatisthis",
@@ -274,7 +279,7 @@ sort_args(Args) ->
 mock_capture(Message, Args) ->
   raven:capture(Message, Args).
 
-mock_request(_Op, {_Path, _Headers, _Type, Body}, _, _) ->
+mock_request(_Op, {_Path, _Headers, _Type, Body}, _, _, ?RAVEN_HTTPC_PROFILE) ->
   Decoded = jsx:decode(zlib:uncompress(base64:decode(Body))),
   io:format(user, "~n~p~n", [Decoded]),
   {ok, {{foo,200,bar},[],<<"body">>}}.

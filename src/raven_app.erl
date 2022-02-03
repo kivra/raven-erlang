@@ -10,6 +10,8 @@
 	stop/1
 ]).
 
+-include("raven.hrl").
+
 -spec start() -> ok | {error, term()}.
 start() ->
 	ensure_started(raven).
@@ -21,6 +23,14 @@ stop() ->
 
 %% @hidden
 start(_StartType, _StartArgs) ->
+    case application:get_env(ssl) of
+        {ok, Options} ->
+            persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, Options});
+        _ ->
+            logger:notice("Raven not configured with httpc ssl options"),
+            persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []})
+    end,
+    {ok, _ProfilePid} = inets:start(httpc, [{profile, ?RAVEN_HTTPC_PROFILE}]),
 	case application:get_env(uri) of
 		{ok, _} ->
 			case application:get_env(error_logger) of
@@ -58,7 +68,9 @@ stop(_State) ->
 			ok;
 		_ ->
 			ok
-	end.
+	end,
+    inets:stop(httpc, ?RAVEN_HTTPC_PROFILE),
+    ok.
 
 %% @private
 ensure_started(App) ->
