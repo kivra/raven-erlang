@@ -5,7 +5,11 @@
 -include_lib("kernel/include/logger.hrl").
 -include("raven.hrl").
 
--define(META_FILTER, [gl,pid,time,file,line,mfa,span_ctx]).
+%% see here: https://develop.sentry.dev/sdk/event-payloads/
+-define(ATTRIBUTE_FILTER, [ event_id, timestamp, platform, level, logger,
+                            transaction, server_name, release, dist, tags,
+                            environment, modules, extra, fingerprint, errors,
+                            user, http_request, stacktrace, exception]).
 
 %% API
 
@@ -95,8 +99,8 @@ make_readable(Format, Args) ->
 get_args(Message, LogEvent) ->
 	Level      = sentry_level(maps:get(level, LogEvent)),
 	Meta       = maps:get(meta, LogEvent),
-	MetaBasic  = maps:without(?META_FILTER, Meta),
-	MetaExtra  = maps:with(?META_FILTER, Meta),
+	MetaBasic  = maps:with(?ATTRIBUTE_FILTER, Meta),
+	MetaExtra  = maps:without(?ATTRIBUTE_FILTER, Meta),
 	Msg        = maps:get(msg, LogEvent),
 	Reason     = Message,
 	Basic      = MetaBasic#{level => Level},
