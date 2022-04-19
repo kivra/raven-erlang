@@ -102,7 +102,7 @@ get_args(Message, LogEvent) ->
 	MetaBasic  = maps:with(?ATTRIBUTE_FILTER, Meta),
 	MetaExtra  = maps:without(?ATTRIBUTE_FILTER, Meta),
 	Msg        = maps:get(msg, LogEvent),
-	Reason     = Message,
+	Reason     = get_reason_maybe(LogEvent, Message),
 	Basic      = MetaBasic#{level => Level},
 	Extra      = get_extra(Reason, MetaExtra, Msg),
 
@@ -119,6 +119,11 @@ get_args(Message, LogEvent) ->
 
 sentry_level(notice) -> info;
 sentry_level(Level) -> Level.
+
+get_reason_maybe(#{msg := {report, #{reason := Reason}}} = _LogEvent, _Default) ->
+        Reason;
+get_reason_maybe(_LogEvent, Default) ->
+        Default.
 
 get_extra(Reason, ExtraMeta, {report, Report}) ->
 	Extra = maps:merge(ExtraMeta, Report),
