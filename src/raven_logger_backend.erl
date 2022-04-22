@@ -69,6 +69,8 @@ get_msg_from_report(#{format := Format, args := Args} = _Report, _Meta) ->
 	make_readable(Format, Args);
 get_msg_from_report(#{description := Description} = _Report, _Meta) ->
 	Description;
+get_msg_from_report(#{message := Message} = _Report, _Meta) ->
+        Message;
 get_msg_from_report(#{reason := Reason} = _Report, _Meta) ->
 	Reason;
 get_msg_from_report(#{error := Error} = _Report, _Meta) ->
