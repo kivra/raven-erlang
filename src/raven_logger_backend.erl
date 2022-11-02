@@ -56,13 +56,23 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 				 Report =:= fun ssl_logger:format/1
 	end.
 
+is_domain(Domain, #{ domain := Domains }) ->
+  lists:member(Domain, Domains).
+
 get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
-	case MsgList of
-		{string, Msg}                        -> Msg;
-		{report, Report}                     -> get_msg_from_report(Report, Meta);
-		{Format, _Args} when is_list(Format) -> Format;
-		_                                    -> unexpected_log_format(Meta)
-	end.
+  DomainOtp = is_domain(otp, Meta),
+  case MsgList of
+    {string, Msg}                        -> Msg;
+    {report, Report} when DomainOtp      -> get_msg_from_otp_report(Report, Meta);
+    {report, Report}                     -> get_msg_from_report(Report, Meta);
+    {Format, _Args} when is_list(Format) -> Format;
+    _                                    -> unexpected_log_format(Meta)
+  end.
+
+get_msg_from_otp_report(#{ label := Label } = Report, _Meta) ->
+  Label;
+get_msg_from_otp_report(Report, Meta) ->
+  get_msg_from_report(Report, Meta).
 
 %% Specific choice of msg
 get_msg_from_report(#{format := Format, args := Args} = _Report, _Meta) ->
