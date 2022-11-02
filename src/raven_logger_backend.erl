@@ -57,7 +57,9 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 	end.
 
 is_domain(Domain, #{ domain := Domains }) ->
-  lists:member(Domain, Domains).
+  lists:member(Domain, Domains);
+is_domain(_, _) ->
+  false.
 
 get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
   DomainOtp = is_domain(otp, Meta),
