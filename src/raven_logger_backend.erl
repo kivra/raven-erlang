@@ -173,56 +173,34 @@ logger_backend_test_() ->
   }.
 
 test_setup() ->
-  persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []}),
-  meck:new(raven_send_sentry_safe),
-  meck:new(httpc, [passthrough]),
-  meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
-  meck:expect(httpc, set_options, 1, fun(_) -> ok end),
-  meck:expect(httpc, request, 5, fun mock_request/5),
-  application:start(raven), %% To se key vsn
-  application:set_env(raven, ipfamily, dummy),
-  application:set_env(raven, uri, "http://foo"),
-  application:set_env(raven, public_key, <<"hello">>),
-  application:set_env(raven, private_key, <<"there">>),
-  application:set_env(raven, project, "terraform mars").
+  ok.
 
 test_teardown(_) ->
-  meck:unload([raven_send_sentry_safe]),
-  meck:unload([httpc]),
-  application:unset_env(raven, ipfamily),
-  application:unset_env(raven, uri),
-  application:unset_env(raven, public_key),
-  application:unset_env(raven, private_key),
-  application:unset_env(raven, project),
-  application:stop(raven),
-  persistent_term:erase(?RAVEN_SSL_PERSIST_KEY),
   ok.
 
 test_log_unknown() ->
   Msg = "whatisthis",
-  ExpectedArgs = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{line, 214},
-                  {msg, "whatisthis"},
-                  {reason,"Unexpected log format in module: ievan_polka"}]}],
   {ok, Message, Args} = run(Msg),
   ?assertMatch("Unexpected log format in module: ievan_polka", Message),
-  ?assertMatch(ExpectedArgs, Args),
+  ?assertMatch( #{correlation_id := "123456789",
+          level := info,
+          module :=  ievan_polka,
+          tags :=  #{correlation_id :=  "123456789"},
+          extra := #{line :=  214,
+                  msg :=  "whatisthis",
+                  reason := "Unexpected log format in module: ievan_polka"}}, Args),
   ok.
 
 test_log_string() ->
   Msg = {string, "foo"},
-  ExpectedArgs = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{line, 214},
-                  {reason,"foo"}]}],
   {ok, Message, Args} = run(Msg),
   ?assertMatch("foo", Message),
-  ?assertMatch(ExpectedArgs, Args),
+  ?assertMatch( #{correlation_id := "123456789",
+          level := info,
+          module :=  ievan_polka,
+          tags :=  #{correlation_id :=  "123456789"},
+          extra := #{line :=  214,
+                  reason := "foo"}}, Args),
   ok.
 
 test_log_format() ->
@@ -276,9 +254,8 @@ test_log_report_with_compound_description() ->
 
 test_log_unknown_report() ->
   Msg = {report, #{a => "foo", b => "bar"}},
-  ExpectedMessage = "Unexpected log format in module: ievan_polka",
   {ok, Message, Args} = run(Msg),
-  ?assertMatch("Unexpected log format in module: ievan_polka", ExpectedMessage, Message),
+  ?assertMatch("Unexpected log format in module: ievan_polka", Message),
   ?assertMatch( #{correlation_id := "123456789",
       level := info,
       module :=  ievan_polka,
@@ -304,13 +281,5 @@ meta() ->
   #{correlation_id => "123456789",
     module => ievan_polka,
     line => 214}.
-
-mock_capture(Message, Args) ->
-  raven:capture(Message, Args).
-
-mock_request(_Op, {_Path, _Headers, _Type, Body}, _, _, ?RAVEN_HTTPC_PROFILE) ->
-  Decoded = jsx:decode(zlib:uncompress(base64:decode(Body))),
-  io:format(user, "~n~p~n", [Decoded]),
-  {ok, {{foo,200,bar},[],<<"body">>}}.
 
 -endif.
