@@ -108,16 +108,13 @@ get_args(Message, LogEvent) ->
 	Basic      = MetaBasic#{level => Level},
 	Extra      = get_extra(Reason, MetaExtra, Msg),
 
-	BasicList  = maps:to_list(Basic),
-	ExtraList  = maps:to_list(Extra),
-
-	case maps:get(correlation_id, Meta, undefined) of
-		undefined ->
-			BasicList ++ [{extra, ExtraList}];
-		CorrelationID ->
-			BasicList ++ [{extra, ExtraList},
-                                      {tags, [{correlation_id, CorrelationID}]}]
-	end.
+	Tags = case Meta of
+    #{correlation_id := CorrId} ->
+			#{correlation_id => CorrId};
+		_ ->
+      #{}
+	end,
+  Basic#{extra => Extra, tags => Tags}.
 
 %% Map otp logger severity to sentry severity
 %% Sentry levels are: fatal, error, warning, info, debug
@@ -178,7 +175,7 @@ logger_backend_test_() ->
 test_setup() ->
   persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []}),
   meck:new(raven_send_sentry_safe),
-  meck:new(httpc),
+  meck:new(httpc, [passthrough]),
   meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
   meck:expect(httpc, set_options, 1, fun(_) -> ok end),
   meck:expect(httpc, request, 5, fun mock_request/5),
@@ -203,93 +200,100 @@ test_teardown(_) ->
 
 test_log_unknown() ->
   Msg = "whatisthis",
-  Message = "Unexpected log format in module: ievan_polka",
-  Args = [{correlation_id,"123456789"},
+  ExpectedArgs = [{correlation_id,"123456789"},
           {level,info},
           {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg, "whatisthis"},
                   {reason,"Unexpected log format in module: ievan_polka"}]}],
-  run(Msg, Message, Args).
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch("Unexpected log format in module: ievan_polka", Message),
+  ?assertMatch(ExpectedArgs, Args),
+  ok.
 
 test_log_string() ->
   Msg = {string, "foo"},
-  Message = "foo",
-  Args = [{correlation_id,"123456789"},
+  ExpectedArgs = [{correlation_id,"123456789"},
           {level,info},
           {module, ievan_polka},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {reason,"foo"}]}],
-  run(Msg, Message, Args).
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch("foo", Message),
+  ?assertMatch(ExpectedArgs, Args),
+  ok.
 
 test_log_format() ->
   Msg = {"Foo ~p", [14]},
-  Message = "Foo ~p",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{line, 214},
-                  {msg,<<"Foo 14">>},
-                  {reason,"Foo ~p"}]}],
-  run(Msg, Message, Args).
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch("Foo ~p", Message),
+  ?assertMatch(
+  #{correlation_id := "123456789",
+  level := info,
+  module :=  ievan_polka,
+  tags :=  #{correlation_id := "123456789"},
+  extra := #{line :=  214,
+          msg := <<"Foo 14">>,
+          reason := "Foo ~p"}}, Args),
+  ok.
 
 test_log_report() ->
   Msg = {report, #{description => "gunnar",
                    a => "foo",
                    b => "bar"}},
-  Message = "gunnar",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{a,"foo"},
-                  {b,"bar"},
-                  {description,"gunnar"},
-                  {line, 214},
-                  {reason,"gunnar"}]}],
-  run(Msg, Message, Args).
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch("gunnar", Message),
+  ?assertMatch(
+    #{correlation_id := "123456789",
+      level := info,
+      module :=  ievan_polka,
+      tags :=  #{correlation_id :=  "123456789"},
+      extra := #{a := "foo",
+                b := "bar",
+                description := "gunnar",
+                line :=  214,
+                reason := "gunnar"}}, Args),
+  ok.
 
 test_log_report_with_compound_description() ->
   Msg = {report, #{description => {namn, "gunnar"},
                    a => "foo",
                    b => "bar"}},
-  Message = {namn, "gunnar"},
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{a,"foo"},
-                  {b,"bar"},
-                  {description,{namn, "gunnar"}},
-                  {line, 214},
-                  {reason,{namn, "gunnar"}}]}],
-  run(Msg, Message, Args).
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch({namn, "gunnar"}, Message),
+  ?assertMatch(#{correlation_id := "123456789",
+          level := info,
+          module :=  ievan_polka,
+          tags :=  #{correlation_id := "123456789"},
+          extra :=  #{a := "foo",
+                  b := "bar",
+                  description := {namn, "gunnar"},
+                  line :=  214,
+                  reason := {namn, "gunnar"}}}, Args),
+  ok.
 
 test_log_unknown_report() ->
-  Msg = {report, #{a => "foo",
-                   b => "bar"}},
-  Message = "Unexpected log format in module: ievan_polka",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
-          {tags, [{correlation_id, "123456789"}]},
-          {extra,[{a,"foo"},
-                  {b,"bar"},
-                  {line, 214},
-                  {reason,"Unexpected log format in module: ievan_polka"}]}],
-  run(Msg, Message, Args).
+  Msg = {report, #{a => "foo", b => "bar"}},
+  ExpectedMessage = "Unexpected log format in module: ievan_polka",
+  {ok, Message, Args} = run(Msg),
+  ?assertMatch("Unexpected log format in module: ievan_polka", ExpectedMessage, Message),
+  ?assertMatch( #{correlation_id := "123456789",
+      level := info,
+      module :=  ievan_polka,
+      tags :=  #{correlation_id :=  "123456789"},
+      extra :=  #{a := "foo",
+              b := "bar",
+              line :=  214,
+              reason := "Unexpected log format in module: ievan_polka"}}, Args),
+  ok.
 
-run(Msg, ExpectedMessage, ExpectedArgs) ->
-  meck:reset([raven_send_sentry_safe, httpc]),
+run(Msg) ->
   Event = event(Msg),
-  log(Event, []),
-  [{_Pid, MFA, _}] = meck:history(raven_send_sentry_safe),
-  {raven_send_sentry_safe, capture, [Message, Args]} = MFA,
-  ?assertEqual(ExpectedMessage, Message),
-  ?assertEqual(sort_args(ExpectedArgs), sort_args(Args)).
+  Message = get_msg(Event),
+  Args = get_args(Message, Event),
+  {ok, Message, Args}.
 
 event(Msg) ->
   Level = info,
@@ -300,10 +304,6 @@ meta() ->
   #{correlation_id => "123456789",
     module => ievan_polka,
     line => 214}.
-
-sort_args(Args) ->
-  SortedExtras = lists:sort(proplists:get_value(extra, Args)),
-  lists:sort([{extra, SortedExtras} | proplists:delete(extra, Args)]).
 
 mock_capture(Message, Args) ->
   raven:capture(Message, Args).
