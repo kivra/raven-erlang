@@ -87,13 +87,13 @@ get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
     case MsgList of
         {string, Msg} -> Msg;
         {report, Report} -> get_msg_from_report(Report, Meta);
-        {Format, _Args} when is_list(Format) -> Format;
+        {Format, Args} when is_list(Format) -> {Format, Args};
         _ -> unexpected_log_format(Meta)
     end.
 
 %% Specific choice of msg
 get_msg_from_report(#{format := Format, args := Args} = _Report, _Meta) ->
-    make_readable(Format, Args);
+    {Format, Args};
 get_msg_from_report(#{description := Description} = _Report, _Meta) ->
     Description;
 get_msg_from_report(#{message := Message} = _Report, _Meta) ->
@@ -106,11 +106,9 @@ get_msg_from_report(#{error := Error} = _Report, _Meta) ->
 get_msg_from_report(Report, #{error_logger := #{report_cb := Report_cb}} = _Meta) when
     is_function(Report_cb)
 ->
-    {Format, Args} = Report_cb(Report),
-    make_readable(Format, Args);
+    {_Format, _Args} = Report_cb(Report);
 get_msg_from_report(Report, #{report_cb := Report_cb} = _Meta) when is_function(Report_cb) ->
-    {Format, Args} = Report_cb(Report),
-    make_readable(Format, Args);
+    {_Format, _Args} = Report_cb(Report);
 %% If nothing provided, then give up
 get_msg_from_report(_Report, Meta) ->
     unexpected_log_format(Meta).
@@ -130,13 +128,14 @@ make_readable(Format, Args) ->
     end.
 
 get_args(Message, LogEvent) ->
-    Level = sentry_level(maps:get(level, LogEvent)),
     Meta = maps:get(meta, LogEvent),
     MetaBasic = maps:with(?ATTRIBUTE_FILTER, Meta),
     MetaExtra = maps:without(?ATTRIBUTE_FILTER, Meta),
     Msg = maps:get(msg, LogEvent),
     Reason = get_reason_maybe(LogEvent, Message),
-    Basic = MetaBasic#{level => Level},
+    Basic = MetaBasic#{
+        level => sentry_level(maps:get(level, LogEvent)), timestamp => maps:get(time, Meta)
+    },
     Extra = get_extra(Reason, MetaExtra, Msg),
 
     Tags =
@@ -220,6 +219,7 @@ test_log_unknown() ->
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
             extra := #{
                 correlation_id := "123456789",
                 module := ievan_polka,
@@ -240,6 +240,7 @@ test_log_string() ->
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
             extra := #{
                 correlation_id := "123456789",
                 module := ievan_polka,
@@ -254,16 +255,17 @@ test_log_string() ->
 test_log_format() ->
     Msg = {"Foo ~p", [14]},
     {ok, Message, Args} = run(Msg),
-    ?assertMatch("Foo ~p", Message),
+    ?assertMatch({"Foo ~p", [14]}, Message),
     ?assertMatch(
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
+            fingerprint := [<<"Foo ~p">>],
             extra := #{
                 module := ievan_polka,
                 line := 214,
                 correlation_id := "123456789",
-                msg := <<"Foo 14">>,
                 reason := "Foo ~p"
             }
         },
@@ -284,6 +286,7 @@ test_log_report() ->
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
             extra := #{
                 a := "foo",
                 b := "bar",
@@ -311,6 +314,7 @@ test_log_report_with_compound_description() ->
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
             extra := #{
                 a := "foo",
                 b := "bar",
@@ -333,6 +337,7 @@ test_log_unknown_report() ->
         #{
             level := info,
             tags := #{correlation_id := "123456789"},
+            timestamp := _,
             extra := #{
                 a := "foo",
                 b := "bar",
@@ -359,7 +364,12 @@ event(Msg) ->
 
 meta() ->
     #{
+        pid => self(),
+        gl => self(),
+        time => logger:timestamp(),
         correlation_id => "123456789",
+        mfa => {ievan_polka, pop, 0},
+        file => "/tmp/ievan_polka.erl",
         module => ievan_polka,
         line => 214
     }.

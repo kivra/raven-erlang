@@ -39,10 +39,9 @@ capture_prepare(Message, Params) ->
     Cfg = get_config(),
     Document0 = #{
         event_id => event_id_i(),
-        project => unicode:characters_to_binary(Cfg#cfg.project),
         platform => erlang,
         server_name => node(),
-        timestamp => timestamp_i(),
+        project => unicode:characters_to_binary(Cfg#cfg.project),
         release => Cfg#cfg.release,
         message => term_to_json_i(Message)
     },
@@ -82,11 +81,11 @@ capture_prepare(Message, Params) ->
                 Acc#{tags => Tags};
             (fingerprint, List, Acc) when is_list(List) ->
                 Acc#{fingerprint => List};
+            (timestamp, T, Acc) ->
+                Acc#{timestamp => rfc3339_timestamp(T)};
             (extra, Extra, Acc) ->
                 %% [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
-                Acc#{extra => Extra};
-            (Key, Value, Acc) ->
-                Acc#{Key => term_to_json_i(Value)}
+                Acc#{extra => Extra}
         end,
     Document = maps:fold(Fun, Document0, Params),
     Body = base64:encode(zlib:compress(jsx:encode(Document))),
@@ -191,10 +190,12 @@ event_id_i() ->
     <<UUID:128>> = <<U0:32, U1:16, 4:4, U2:12, 2#10:2, U3:32, U4:30>>,
     iolist_to_binary(io_lib:format("~32.16.0b", [UUID])).
 
-timestamp_i() ->
-    {{Y, Mo, D}, {H, Mn, S}} = calendar:now_to_datetime(os:timestamp()),
-    FmtStr = "~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B",
-    iolist_to_binary(io_lib:format(FmtStr, [Y, Mo, D, H, Mn, S])).
+%%rfc3339_timestamp() ->
+%%    rfc3339_timestamp(logger:timestamp()).
+rfc3339_timestamp(T) ->
+    Options = [{unit, microsecond}, {offset, "Z"}],
+    Time = calendar:system_time_to_rfc3339(T, Options),
+    iolist_to_binary(Time).
 
 unix_timestamp_i() ->
     {Mega, Sec, Micro} = os:timestamp(),
