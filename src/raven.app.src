@@ -8,8 +8,7 @@
 		crypto,
 		public_key,
 		ssl,
-		inets,
-		stdlib2
+		inets
 	]},
 	{mod, {raven_app, []}},
 	{env, [
