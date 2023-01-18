@@ -1,6 +1,6 @@
 -module(raven_logger_backend).
--export([ log/2
-]).
+-export([log/2]).
+-ignore_xref([log/2]).
 
 -include_lib("kernel/include/logger.hrl").
 -include("raven.hrl").
