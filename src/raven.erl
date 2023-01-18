@@ -80,6 +80,8 @@ capture_prepare(Message, Params) ->
             (tags, Tags, Acc) ->
                 %% [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
                 Acc#{tags => Tags};
+            (fingerprint, List, Acc) when is_list(List) ->
+                Acc#{fingerprint => List};
             (extra, Extra, Acc) ->
                 %% [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
                 Acc#{extra => Extra};
@@ -235,6 +237,6 @@ frame_to_json_i({Module, Function, Arguments, Location}) ->
 term_to_json_i(Term) when is_binary(Term); is_atom(Term) ->
     Term;
 term_to_json_i(Term) when is_map(Term) ->
-    maps:update_with(fun term_to_json_i/1, Term);
+    maps:fold(fun(K, V, Acc) -> Acc#{K => term_to_json_i(V)} end, #{}, Term);
 term_to_json_i(Term) ->
     iolist_to_binary(io_lib:format("~120p", [Term])).
