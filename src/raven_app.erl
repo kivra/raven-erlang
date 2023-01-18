@@ -1,27 +1,11 @@
 -module(raven_app).
--behavior(application).
--export([
-	start/0,
-	stop/0
-]).
 
--export([
-	start/2,
-	stop/1
-]).
+-behavior(application).
+
+-export([start/2, stop/1]).
 
 -include("raven.hrl").
 
--spec start() -> ok | {error, term()}.
-start() ->
-	ensure_started(raven).
-
--spec stop() -> ok | {error, term()}.
-stop() ->
-	application:stop(raven).
-
-
-%% @hidden
 start(_StartType, _StartArgs) ->
     case application:get_env(ssl) of
         {ok, Options} ->
@@ -50,19 +34,6 @@ start(_StartType, _StartArgs) ->
         {error, missing_configuration}
     end.
 
-%% @hidden
 stop(_State) ->
     inets:stop(httpc, ?RAVEN_HTTPC_PROFILE),
     ok.
-
-%% @private
-ensure_started(App) ->
-	case application:start(App) of
-		ok ->
-			ok;
-		{error, {already_started, App}} ->
-			ok;
-		{error, {not_started, Other}} ->
-			ensure_started(Other),
-			ensure_started(App)
-	end.
