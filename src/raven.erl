@@ -37,51 +37,56 @@ capture(Message, Params) ->
 
 capture_prepare(Message, Params) ->
     Cfg = get_config(),
-    Document = [
-        {event_id, event_id_i()},
-        {project, unicode:characters_to_binary(Cfg#cfg.project)},
-        {platform, erlang},
-        {server_name, node()},
-        {timestamp, timestamp_i()},
-        {release, Cfg#cfg.release},
-        {message, term_to_json_i(Message)}
-        | lists:map(
-            fun
-                ({stacktrace, Value}) ->
-                    {'sentry.interfaces.Stacktrace', [
-                        {frames, lists:reverse([frame_to_json_i(Frame) || Frame <- Value])}
-                    ]};
-                ({exception, {Type, Value}}) ->
-                    {'sentry.interfaces.Exception', [
-                        {type, term_to_json_i(Type)},
-                        {value, term_to_json_i(Value)}
-                    ]};
-                ({exception, Value}) ->
-                    {'sentry.interfaces.Exception', [
-                        {type, error},
-                        {value, term_to_json_i(Value)}
-                    ]};
-                ({http_request, {Method, Url, Headers}}) ->
-                    {'sentry.interfaces.Http', [
-                        {method, Method},
-                        {url, Url},
-                        {headers, Headers}
-                    ]};
-                % Reserved keys are 'id', 'username', 'email' and 'ip_address' out
-                % of which ONE needs to be supplied. Additional arbitrary keys may
-                % also be sent.
-                ({user, KVs}) when is_list(KVs) ->
-                    {'sentry.interfaces.User', KVs};
-                ({tags, Tags}) ->
-                    {tags, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
-                ({extra, Tags}) ->
-                    {extra, [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
-                ({Key, Value}) ->
-                    {Key, term_to_json_i(Value)}
-            end,
-            Params
-        )
-    ],
+    Document0 = #{
+        event_id => event_id_i(),
+        project => unicode:characters_to_binary(Cfg#cfg.project),
+        platform => erlang,
+        server_name => node(),
+        timestamp => timestamp_i(),
+        release => Cfg#cfg.release,
+        message => term_to_json_i(Message)
+    },
+    Fun =
+        fun
+            (stacktrace, Value, Acc) ->
+                Acc#{
+                    'sentry.interfaces.Stacktrace' =>
+                        #{frames => lists:reverse([frame_to_json_i(Frame) || Frame <- Value])}
+                };
+            (exception, {Type, Value}, Acc) ->
+                Acc#{
+                    'sentry.interfaces.Exception' =>
+                        #{type => term_to_json_i(Type), value => term_to_json_i(Value)}
+                };
+            (exception, Value, Acc) ->
+                Acc#{
+                    'sentry.interfaces.Exception' =>
+                        #{type => error, value => term_to_json_i(Value)}
+                };
+            (http_request, {Method, Url, Headers}, Acc) ->
+                Acc#{
+                    'sentry.interfaces.Http' =>
+                        #{
+                            method => Method,
+                            url => Url,
+                            headers => Headers
+                        }
+                };
+            % Reserved keys are 'id', 'username', 'email' and 'ip_address' out
+            % of which ONE needs to be supplied. Additional arbitrary keys may
+            % also be sent.
+            (user, KVs, Acc) when is_list(KVs) ->
+                Acc#{'sentry.interfaces.User' => KVs};
+            (tags, Tags, Acc) ->
+                %% [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
+                Acc#{tags => Tags};
+            (extra, Extra, Acc) ->
+                %% [{Key, term_to_json_i(Value)} || {Key, Value} <- Tags]};
+                Acc#{extra => Extra};
+            (Key, Value, Acc) ->
+                Acc#{Key => term_to_json_i(Value)}
+        end,
+    Document = maps:fold(Fun, Document0, Params),
     Body = base64:encode(zlib:compress(jsx:encode(Document))),
     {ok, Body}.
 
@@ -229,5 +234,7 @@ frame_to_json_i({Module, Function, Arguments, Location}) ->
 
 term_to_json_i(Term) when is_binary(Term); is_atom(Term) ->
     Term;
+term_to_json_i(Term) when is_map(Term) ->
+    maps:update_with(fun term_to_json_i/1, Term);
 term_to_json_i(Term) ->
     iolist_to_binary(io_lib:format("~120p", [Term])).
