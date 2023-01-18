@@ -1,22 +1,22 @@
 {application, raven, [
-	{description, "Erlang client for Sentry"},
-	{vsn, git},
-	{registered, []},
-	{applications, [
-		kernel,
-		stdlib,
-		crypto,
-		public_key,
-		ssl,
-		inets
-	]},
-	{mod, {raven_app, []}},
-	{env, [
-		{uri, "https://app.getsentry.com"},
-		{project, "1"},
-		{public_key, ""},
-		{private_key, ""},
-		{error_logger, false},
-		{ipfamily, inet}
-	]}
+    {description, "Erlang client for Sentry"},
+    {vsn, git},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        crypto,
+        public_key,
+        ssl,
+        inets
+    ]},
+    {mod, {raven_app, []}},
+    {env, [
+        {uri, "https://app.getsentry.com"},
+        {project, "1"},
+        {public_key, ""},
+        {private_key, ""},
+        {error_logger, false},
+        {ipfamily, inet}
+    ]}
 ]}.
