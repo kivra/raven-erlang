@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  push:
+
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        otp: ["24", "25.1"]
+    container: erlang:${{matrix.otp}}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure for private git repos with https-url
+        run: |
+          git config --global url."https://${{ secrets.KIVRABOT }}@github.com/kivra/".insteadOf "git@github.com:kivra/"
+          git config --global url."https://${{ secrets.KIVRABOT }}@github.com/kivra".insteadOf "https://github.com/kivra"
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            _build/default
+            !_build/default/lib/raven-erlang
+            _build/test/lib
+            !_build/test/lib/raven-erlang
+          key: compile-${{ matrix.otp }}-${{ hashFiles('rebar.*') }}
+
+      - name: Fetch deps
+        run: rebar3 get-deps
+
+      - name: Compile
+        run: rebar3 compile
+
+      - name: Run Tests
+        run: rebar3 do xref,eunit,ct
