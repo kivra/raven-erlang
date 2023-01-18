@@ -119,8 +119,26 @@ get_args(Message, LogEvent) ->
                                       {tags, [{correlation_id, CorrelationID}]}]
 	end.
 
-sentry_level(notice) -> info;
-sentry_level(Level) -> Level.
+%% Map otp logger severity to sentry severity
+%% Sentry levels are: fatal, error, warning, info, debug
+%% Otp levels are:
+%%   emergency:	system is unusable
+%%   alert:      action must be taken immediately
+%%   critical:  critical conditions
+%%   error:	    error conditions
+%%   warning:	  warning conditions
+%%   notice:    normal but significant conditions
+%%   info:      informational messages
+%%   debug:     debug-level messages
+sentry_level(emergency) -> fatal;
+sentry_level(alert)     -> fatal;
+sentry_level(critical)  -> error;
+sentry_level(error)     -> error;
+sentry_level(warning)   -> warning;
+sentry_level(notice)    -> info;
+sentry_level(info)      -> info;
+sentry_level(debug)     -> debug;
+sentry_level(_)         -> debug. %% ?
 
 get_reason_maybe(#{msg := {report, #{reason := Reason}}} = _LogEvent, _Default) ->
         Reason;
