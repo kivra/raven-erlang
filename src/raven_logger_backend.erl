@@ -218,11 +218,11 @@ test_log_unknown() ->
     ?assertMatch("Unexpected log format in module: ievan_polka", Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
+            correlation_id := "123456789",
+            module := ievan_polka,
                 line := 214,
                 msg := "whatisthis",
                 reason := "Unexpected log format in module: ievan_polka"
@@ -238,11 +238,11 @@ test_log_string() ->
     ?assertMatch("foo", Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
+            correlation_id := "123456789",
+            module := ievan_polka,
                 line := 214,
                 reason := "foo"
             }
@@ -257,12 +257,12 @@ test_log_format() ->
     ?assertMatch("Foo ~p", Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
+            module := ievan_polka,
                 line := 214,
+            correlation_id := "123456789",
                 msg := <<"Foo 14">>,
                 reason := "Foo ~p"
             }
@@ -282,15 +282,15 @@ test_log_report() ->
     ?assertMatch("gunnar", Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
                 a := "foo",
                 b := "bar",
                 description := "gunnar",
+            module := ievan_polka,
                 line := 214,
+            correlation_id := "123456789",
                 reason := "gunnar"
             }
         },
@@ -309,15 +309,15 @@ test_log_report_with_compound_description() ->
     ?assertMatch({namn, "gunnar"}, Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
                 a := "foo",
                 b := "bar",
                 description := {namn, "gunnar"},
+                module := ievan_polka,
                 line := 214,
+                correlation_id := "123456789",
                 reason := {namn, "gunnar"}
             }
         },
@@ -331,14 +331,14 @@ test_log_unknown_report() ->
     ?assertMatch("Unexpected log format in module: ievan_polka", Message),
     ?assertMatch(
         #{
-            correlation_id := "123456789",
             level := info,
-            module := ievan_polka,
             tags := #{correlation_id := "123456789"},
             extra := #{
                 a := "foo",
                 b := "bar",
+                module := ievan_polka,
                 line := 214,
+                correlation_id := "123456789",
                 reason := "Unexpected log format in module: ievan_polka"
             }
         },
