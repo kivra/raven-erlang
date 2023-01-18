@@ -221,8 +221,8 @@ test_log_unknown() ->
             level := info,
             tags := #{correlation_id := "123456789"},
             extra := #{
-            correlation_id := "123456789",
-            module := ievan_polka,
+                correlation_id := "123456789",
+                module := ievan_polka,
                 line := 214,
                 msg := "whatisthis",
                 reason := "Unexpected log format in module: ievan_polka"
@@ -241,8 +241,8 @@ test_log_string() ->
             level := info,
             tags := #{correlation_id := "123456789"},
             extra := #{
-            correlation_id := "123456789",
-            module := ievan_polka,
+                correlation_id := "123456789",
+                module := ievan_polka,
                 line := 214,
                 reason := "foo"
             }
@@ -260,9 +260,9 @@ test_log_format() ->
             level := info,
             tags := #{correlation_id := "123456789"},
             extra := #{
-            module := ievan_polka,
+                module := ievan_polka,
                 line := 214,
-            correlation_id := "123456789",
+                correlation_id := "123456789",
                 msg := <<"Foo 14">>,
                 reason := "Foo ~p"
             }
@@ -288,9 +288,9 @@ test_log_report() ->
                 a := "foo",
                 b := "bar",
                 description := "gunnar",
-            module := ievan_polka,
+                module := ievan_polka,
                 line := 214,
-            correlation_id := "123456789",
+                correlation_id := "123456789",
                 reason := "gunnar"
             }
         },
