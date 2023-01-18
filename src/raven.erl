@@ -4,6 +4,7 @@
 	capture_prepare/2,
 	capture_with_backoff_send/2
 ]).
+-ignore_xref([capture/2]).
 
 -include("raven.hrl").
 

@@ -1,21 +1,18 @@
 -module(raven_send_sentry_safe).
 
--behaviour(gen_server).
+-behavior(gen_server).
 
--export([start/0, start_link/0, stop/0, capture/2]).
+-export([start_link/0]).
+-ignore_xref([start_link/0]). % unresolved reference from raven_sup childspec
+
+-export([capture/2]).
 
 -export([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2]).
 
 %% API
 
-start() ->
-  gen_server:start({local, ?MODULE}, ?MODULE, undefined, []).
-
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, undefined, []).
-
-stop() ->
-  gen_server:stop(?MODULE).
 
 capture(Message, Args) ->
   gen_server:cast(?MODULE, {capture, Message, Args}).
