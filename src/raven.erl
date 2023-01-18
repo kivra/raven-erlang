@@ -2,8 +2,7 @@
 -export([
 	capture/2,
 	capture_prepare/2,
-	capture_with_backoff_send/2,
-	user_agent/0
+	capture_with_backoff_send/2
 ]).
 
 -include("raven.hrl").
