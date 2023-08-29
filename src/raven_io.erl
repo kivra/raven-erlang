@@ -2,7 +2,6 @@
 
 -export([format/2]).
 
--spec format(io:format(), [term()]) -> io_lib:chars().
 format(Format, Args) ->
     Chars =
         try lists:flatten(
@@ -26,3 +25,16 @@ update(M = #{control_char := $p, args := [Arg]}, PDepth, _) ->
 update(M = #{control_char := $w, args := [Arg]}, _, WDepth) ->
     M#{control_char := $W, args := [Arg, WDepth]};
 update(X, _, _) -> X.
+
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+format_test() ->
+    %% Format error
+    ?assertEqual( "FORMAT ERROR: \"Data: ~p\" wat"
+                , format("Data: ~p", wat)),
+
+    ok.
+-endif.
