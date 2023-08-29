@@ -809,7 +809,7 @@ format_term(Term) ->
 
 %% @private
 format(Format, Data) ->
-	iolist_to_binary(s2_io:format(Format, Data)).
+	iolist_to_binary(raven_io:format(Format, Data)).
 
 %% Start of Kivra specific
 %% @private
