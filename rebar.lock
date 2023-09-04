@@ -1,0 +1,4 @@
+[{<<"jsx">>,
+  {git,"git@github.com:kivra/jsx.git",
+       {ref,"fc2a001073f2300ba38427c23e83d5673c020542"}},
+  0}].
