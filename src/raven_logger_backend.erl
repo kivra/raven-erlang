@@ -186,36 +186,36 @@ test_teardown(_) ->
 test_log_unknown() ->
   Msg = "whatisthis",
   Message = "Unexpected log format in module: ievan_polka",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg, "whatisthis"},
-                  {reason,"Unexpected log format in module: ievan_polka"}]}],
+                  {reason,"Unexpected log format in module: ievan_polka"},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_string() ->
   Msg = {string, "foo"},
   Message = "foo",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
-                  {reason,"foo"}]}],
+                  {reason,"foo"},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_format() ->
   Msg = {"Foo ~p", [14]},
   Message = "Foo ~p",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg,<<"Foo 14">>},
-                  {reason,"Foo ~p"}]}],
+                  {reason,"Foo ~p"},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_report() ->
@@ -223,15 +223,15 @@ test_log_report() ->
                    a => "foo",
                    b => "bar"}},
   Message = "gunnar",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {description,"gunnar"},
                   {line, 214},
-                  {reason,"gunnar"}]}],
+                  {reason,"gunnar"},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_report_with_compound_description() ->
@@ -239,29 +239,29 @@ test_log_report_with_compound_description() ->
                    a => "foo",
                    b => "bar"}},
   Message = {namn, "gunnar"},
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {description,{namn, "gunnar"}},
                   {line, 214},
-                  {reason,{namn, "gunnar"}}]}],
+                  {reason,{namn, "gunnar"}},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_unknown_report() ->
   Msg = {report, #{a => "foo",
                    b => "bar"}},
   Message = "Unexpected log format in module: ievan_polka",
-  Args = [{correlation_id,"123456789"},
-          {level,info},
-          {module, ievan_polka},
+  Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {line, 214},
-                  {reason,"Unexpected log format in module: ievan_polka"}]}],
+                  {reason,"Unexpected log format in module: ievan_polka"},
+                  {module, ievan_polka},
+                  {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 run(Msg, ExpectedMessage, ExpectedArgs) ->
