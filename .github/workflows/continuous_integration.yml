@@ -40,8 +40,8 @@ jobs:
       # - name: Analyze
       #   run: rebar3 do xref, dialyzer
 
-      # - name: Test (EUnit)
-      #   run: rebar3 eunit
+      - name: Test (EUnit)
+        run: rebar3 eunit
 
       - name: Test (Common Test)
         run: rebar3 ct
