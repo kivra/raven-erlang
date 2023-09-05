@@ -56,9 +56,9 @@ is_httpc_log(#{meta := Meta} = _LogEvent) ->
 				 Report =:= fun ssl_logger:format/1
 	end.
 
-get_msg(#{msg := MsgList, meta := Meta} = _LogEvent) ->
-	case MsgList of
-		{string, Msg}                        -> Msg;
+get_msg(#{msg := Msg, meta := Meta} = _LogEvent) ->
+	case Msg of
+		{string, String}                     -> String;
 		{report, Report}                     -> get_msg_from_report(Report, Meta);
 		{Format, _Args} when is_list(Format) -> Format;
 		_                                    -> unexpected_log_format(Meta)
@@ -87,9 +87,9 @@ get_msg_from_report(_Report, Meta) ->
 	unexpected_log_format(Meta).
 
 unexpected_log_format(Meta) ->
-  	Module = maps:get(module, Meta),
-	"Unexpected log format in module: " ++ atom_to_list(Module).
-
+	{M, F, A} = maps:get(mfa, Meta, {undefined, undefined, undefined}),
+	Line = maps:get(line, Meta, undefined),
+	lists:flatten(io_lib:format("Unexpected log format in function: ~p:~p/~p line: ~p", [M, F, A, Line])).
 
 make_readable(Format, Args) ->
 	try
@@ -187,13 +187,13 @@ test_teardown(_) ->
 
 test_log_unknown() ->
   Msg = "whatisthis",
-  Message = "Unexpected log format in module: ievan_polka",
+  Message = "Unexpected log format in function: m:f/0 line: 214",
   Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {msg, "whatisthis"},
-                  {reason,"Unexpected log format in module: ievan_polka"},
-                  {module, ievan_polka},
+                  {reason, Message},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
@@ -204,7 +204,7 @@ test_log_string() ->
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{line, 214},
                   {reason,"foo"},
-                  {module, ievan_polka},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
@@ -216,7 +216,7 @@ test_log_format() ->
           {extra,[{line, 214},
                   {msg,<<"Foo 14">>},
                   {reason,"Foo ~p"},
-                  {module, ievan_polka},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
@@ -232,7 +232,7 @@ test_log_report() ->
                   {description,"gunnar"},
                   {line, 214},
                   {reason,"gunnar"},
-                  {module, ievan_polka},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
@@ -248,21 +248,21 @@ test_log_report_with_compound_description() ->
                   {description,{namn, "gunnar"}},
                   {line, 214},
                   {reason,{namn, "gunnar"}},
-                  {module, ievan_polka},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
 test_log_unknown_report() ->
   Msg = {report, #{a => "foo",
                    b => "bar"}},
-  Message = "Unexpected log format in module: ievan_polka",
+  Message = "Unexpected log format in function: m:f/0 line: 214",
   Args = [{level,info},
           {tags, [{correlation_id, "123456789"}]},
           {extra,[{a,"foo"},
                   {b,"bar"},
                   {line, 214},
-                  {reason,"Unexpected log format in module: ievan_polka"},
-                  {module, ievan_polka},
+                  {reason, Message},
+                  {mfa, {m, f, 0}},
                   {correlation_id,"123456789"}]}],
   run(Msg, Message, Args).
 
@@ -282,7 +282,7 @@ event(Msg) ->
 
 meta() ->
   #{correlation_id => "123456789",
-    module => ievan_polka,
+    mfa => {m, f, 0},
     line => 214}.
 
 sort_args(Args) ->
