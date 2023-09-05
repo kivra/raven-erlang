@@ -33,7 +33,8 @@ capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
 	{ok, Body} = capture_prepare(Message, Params),
-	capture_with_backoff_send(Body).
+	{ok, _Backoff} = capture_with_backoff_send(Body),
+    ok.
 
 capture_prepare(Message, Params) ->
 	Cfg = get_config(),

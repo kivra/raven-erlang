@@ -13,7 +13,7 @@ all_test_() ->
     ]}}.
 
 simple_capture_() ->
-    raven:capture(foo, []).
+    ?assertEqual(ok, raven:capture(foo, [])).
 
 %--- Harness -------------------------------------------------------------------
 
