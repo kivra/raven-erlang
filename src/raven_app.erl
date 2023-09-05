@@ -31,8 +31,10 @@ start(_StartType, _StartArgs) ->
             persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []})
     end,
     {ok, _ProfilePid} = inets:start(httpc, [{profile, ?RAVEN_HTTPC_PROFILE}]),
-	case application:get_env(uri) of
-		{ok, _} ->
+	case {application:get_env(uri), application:get_env(dsn)} of
+		{undefined, undefined} ->
+			{error, missing_configuration};
+		_ ->
 			case application:get_env(error_logger) of
 				{ok, true} ->
 					error_logger:add_report_handler(raven_error_logger);
@@ -55,9 +57,7 @@ start(_StartType, _StartArgs) ->
 					{ok, Pid};
 				Error ->
 					Error
-			end;
-		_ ->
-			{error, missing_configuration}
+			end
 	end.
 
 %% @hidden
