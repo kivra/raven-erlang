@@ -20,7 +20,7 @@ simple_capture_() ->
 setup() ->
     error_logger:tty(false),
     {ok, InetApps} = application:ensure_all_started(inets),
-    {ok, Pid} = inets:start(httpd, [
+    {ok, HTTPD} = inets:start(httpd, [
         {port, 0},
         {server_name, "httpd_test"},
         {server_root, "."},
@@ -28,7 +28,7 @@ setup() ->
         {bind_address, "localhost"},
         {modules, [?MODULE]}
     ]),
-    Info = httpd:info(Pid),
+    Info = httpd:info(HTTPD),
     Port = proplists:get_value(port, Info),
     URI = #{
         scheme => "http",
@@ -41,10 +41,11 @@ setup() ->
         {dsn, uri_string:recompose(URI)}
     ]}]),
     {ok, RavenApps} = application:ensure_all_started(raven),
-    InetApps ++ RavenApps.
+    {HTTPD, InetApps ++ RavenApps}.
 
-cleanup(Apps) ->
+cleanup({HTTPD, Apps}) ->
     [ok = application:stop(A) || A <- lists:reverse(Apps)],
+    ok = inets:stop(httpd, HTTPD),
     error_logger:tty(true).
 
 %--- Callbacks -----------------------------------------------------------------
