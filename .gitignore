@@ -20,6 +20,7 @@ _build
 *.iml
 rebar3.crashdump
 *~
+deps/
 
 # macOS
 .DS_Store
