@@ -137,7 +137,7 @@ get_config() ->
 
 -spec get_config(App :: atom()) -> cfg_rec().
 get_config(App) ->
-	{ok, IpFamily} = application:get_env(App, ipfamily),
+	IpFamily = application:get_env(App, ipfamily, inet),
 	Release = application:get_env(App, release, undefined),
 	case application:get_env(App, dsn) of
 		{ok, Dsn} ->
