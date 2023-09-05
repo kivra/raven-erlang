@@ -4,6 +4,12 @@ raven-erlang
 raven-erlang is an Erlang client for [Sentry](http://aboutsentry.com/) that integrates with the
 standard ```error_logger``` module.
 
+
+Requirements
+============
+
+* Erlang 25.1 or higher
+
 Quick Start
 ===========
 

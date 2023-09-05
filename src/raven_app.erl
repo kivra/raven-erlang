@@ -23,13 +23,10 @@ stop() ->
 
 %% @hidden
 start(_StartType, _StartArgs) ->
-    case application:get_env(ssl) of
-        {ok, Options} ->
-            persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, Options});
-        _ ->
-            logger:notice("Raven not configured with httpc ssl options"),
-            persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []})
-    end,
+    persistent_term:put(
+    	?RAVEN_SSL_PERSIST_KEY,
+    	{ssl, httpc:ssl_verify_host_options(true)}
+    ),
     {ok, _ProfilePid} = inets:start(httpc, [{profile, ?RAVEN_HTTPC_PROFILE}]),
 	case {application:get_env(uri), application:get_env(dsn)} of
 		{undefined, undefined} ->
@@ -69,8 +66,8 @@ stop(_State) ->
 		_ ->
 			ok
 	end,
-    inets:stop(httpc, ?RAVEN_HTTPC_PROFILE),
-    ok.
+    ok = inets:stop(httpc, ?RAVEN_HTTPC_PROFILE),
+    true = persistent_term:erase(?RAVEN_SSL_PERSIST_KEY).
 
 %% @private
 ensure_started(App) ->
