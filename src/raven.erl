@@ -2,7 +2,7 @@
 -export([
 	capture/2,
 	capture_prepare/2,
-	capture_with_backoff_send/2,
+	capture_with_backoff_send/1,
 	user_agent/0
 ]).
 
@@ -33,7 +33,7 @@ capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
 	{ok, Body} = capture_prepare(Message, Params),
-	capture_with_backoff_send(Body, false).
+	capture_with_backoff_send(Body).
 
 capture_prepare(Message, Params) ->
 	Cfg = get_config(),
@@ -82,9 +82,7 @@ capture_prepare(Message, Params) ->
 	Body = base64:encode(zlib:compress(jsx:encode(Document))),
 	{ok, Body}.
 
-%Synchronized set to true returns backoff
-%otherwise, it is not returned
-capture_with_backoff_send(Body, Synchronized) ->
+capture_with_backoff_send(Body) ->
 	Cfg = get_config(),
 	Timestamp = integer_to_list(unix_timestamp_i()),
 	UA = user_agent(),
@@ -100,26 +98,16 @@ capture_with_backoff_send(Body, Synchronized) ->
 	{ok, Result} = httpc:request(post,
 		{Cfg#cfg.uri ++ "/api/store/", Headers, "application/octet-stream", Body},
 		[ssl_options()],
-		[{body_format, binary}, {sync, Synchronized}],
+		[{body_format, binary}],
         ?RAVEN_HTTPC_PROFILE
 	),
-	case Synchronized of
-		false -> ok;
-		true  -> {ok, extract_backoff(Result)}
-	end.
+	{ok, extract_backoff(Result)}.
 
-extract_backoff(Result)  when is_reference(Result) ->
-	io:format("~nHTTP return was reference ~p~n", [Result]),
-	0;
 extract_backoff({StatusLine, Headers, _Body}) ->
 	{_,ResponseCode, _} = StatusLine,
 	case ResponseCode of
-		429 ->
-			Backoff = list_to_integer(proplists:get_value("retry-after", Headers)),
-			io:format("       retry:  ~p~n", [Backoff]),
-			Backoff;
-		_   ->
-			0
+		429 -> list_to_integer(proplists:get_value("retry-after", Headers));
+		200 -> 0
 	end.
 
 -spec user_agent() -> iolist().
