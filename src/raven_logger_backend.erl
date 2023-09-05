@@ -158,6 +158,7 @@ logger_backend_test_() ->
   }.
 
 test_setup() ->
+  error_logger:tty(false),
   persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []}),
   meck:new(raven_send_sentry_safe),
   meck:new(httpc),
@@ -181,6 +182,7 @@ test_teardown(_) ->
   application:unset_env(raven, project),
   application:stop(raven),
   persistent_term:erase(?RAVEN_SSL_PERSIST_KEY),
+  error_logger:tty(true),
   ok.
 
 test_log_unknown() ->
@@ -291,8 +293,7 @@ mock_capture(Message, Args) ->
   raven:capture(Message, Args).
 
 mock_request(_Op, {_Path, _Headers, _Type, Body}, _, _, ?RAVEN_HTTPC_PROFILE) ->
-  Decoded = jsx:decode(zlib:uncompress(base64:decode(Body))),
-  io:format(user, "~n~p~n", [Decoded]),
+  _ = jsx:decode(zlib:uncompress(base64:decode(Body))),
   {ok, {{foo,200,bar},[],<<"body">>}}.
 
 -endif.
