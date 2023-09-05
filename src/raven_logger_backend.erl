@@ -159,13 +159,12 @@ logger_backend_test_() ->
 
 test_setup() ->
   error_logger:tty(false),
-  persistent_term:put(?RAVEN_SSL_PERSIST_KEY, {ssl, []}),
-  meck:new(raven_send_sentry_safe),
-  meck:new(httpc),
+  meck:new(raven_send_sentry_safe, [passthrough]),
+  meck:new(httpc, [passthrough]),
   meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
   meck:expect(httpc, set_options, 1, fun(_) -> ok end),
   meck:expect(httpc, request, 5, fun mock_request/5),
-  application:start(raven), %% To se key vsn
+  ok = application:start(raven),
   application:set_env(raven, ipfamily, dummy),
   application:set_env(raven, uri, "http://foo"),
   application:set_env(raven, public_key, <<"hello">>),
@@ -180,8 +179,7 @@ test_teardown(_) ->
   application:unset_env(raven, public_key),
   application:unset_env(raven, private_key),
   application:unset_env(raven, project),
-  application:stop(raven),
-  persistent_term:erase(?RAVEN_SSL_PERSIST_KEY),
+  ok = application:stop(raven),
   error_logger:tty(true),
   ok.
 
