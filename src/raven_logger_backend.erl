@@ -164,14 +164,15 @@ test_setup() ->
   meck:expect(raven_send_sentry_safe, capture, 2, fun mock_capture/2),
   meck:expect(httpc, set_options, 1, fun(_) -> ok end),
   meck:expect(httpc, request, 5, fun mock_request/5),
-  ok = application:start(raven),
+  {ok, Apps} = application:ensure_all_started(raven),
   application:set_env(raven, ipfamily, dummy),
   application:set_env(raven, uri, "http://foo"),
   application:set_env(raven, public_key, <<"hello">>),
   application:set_env(raven, private_key, <<"there">>),
-  application:set_env(raven, project, "terraform mars").
+  application:set_env(raven, project, "terraform mars"),
+  Apps.
 
-test_teardown(_) ->
+test_teardown(Apps) ->
   meck:unload([raven_send_sentry_safe]),
   meck:unload([httpc]),
   application:unset_env(raven, ipfamily),
@@ -179,7 +180,7 @@ test_teardown(_) ->
   application:unset_env(raven, public_key),
   application:unset_env(raven, private_key),
   application:unset_env(raven, project),
-  ok = application:stop(raven),
+  [ok = application:stop(A) || A <- lists:reverse(Apps)],
   error_logger:tty(true),
   ok.
 
