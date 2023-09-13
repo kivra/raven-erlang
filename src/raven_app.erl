@@ -51,6 +51,7 @@ start(_StartType, _StartArgs) ->
 			end,
 			case raven_sup:start_link() of
 				{ok, Pid} ->
+					raven_rate_limit:setup(),
 					{ok, Pid};
 				Error ->
 					Error
@@ -67,7 +68,8 @@ stop(_State) ->
 			ok
 	end,
     ok = inets:stop(httpc, ?RAVEN_HTTPC_PROFILE),
-    true = persistent_term:erase(?RAVEN_SSL_PERSIST_KEY).
+    true = persistent_term:erase(?RAVEN_SSL_PERSIST_KEY),
+    raven_rate_limit:teardown().
 
 %% @private
 ensure_started(App) ->

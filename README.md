@@ -98,6 +98,8 @@ To add the raven backend:
 Advanced Usage
 ==============
 
+### Manual Logging
+
 You can log directly events to sentry using the ```raven:capture/2``` function, for example:
 
 ```erlang
@@ -109,4 +111,22 @@ raven:capture("Test Event", [
         {process_dictionnary, erlang:get()}
     ]}
 ]).
+```
+
+### Rate Limiting
+
+The Raven application can rate limit the number of events sent to Sentry. By
+default rate limiting is disabled. To enable, configure the application
+environment variable `rate_limit` with `{Intensity, Period}` where
+`Intensity` is the maximum number of error reports in the time `Period` in
+milliseconds.
+
+Example `sys.config`:
+
+```erlang
+[
+    {raven, [
+        {rate_limit, {250, 60_000}} % No more than 250 reports per minute
+    ]}
+]
 ```

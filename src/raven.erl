@@ -32,9 +32,10 @@
 capture(Message, Params) when is_list(Message) ->
 	capture(unicode:characters_to_binary(Message), Params);
 capture(Message, Params) ->
-	{ok, Body} = capture_prepare(Message, Params),
-	{ok, _Backoff} = capture_with_backoff_send(Body),
-    ok.
+	raven_rate_limit:run(fun() ->
+		{ok, Body} = capture_prepare(Message, Params),
+		capture_with_backoff_send(Body)
+	end).
 
 capture_prepare(Message, Params) ->
 	Cfg = get_config(),
@@ -102,14 +103,14 @@ capture_with_backoff_send(Body) ->
 		[{body_format, binary}],
         ?RAVEN_HTTPC_PROFILE
 	),
-	{ok, extract_backoff(Result)}.
+	extract_backoff(Result),
+	ok.
 
-extract_backoff({StatusLine, Headers, _Body}) ->
-	{_,ResponseCode, _} = StatusLine,
-	case ResponseCode of
-		429 -> list_to_integer(proplists:get_value("retry-after", Headers));
-		200 -> 0
-	end.
+extract_backoff({{_HTTP, 429, _Message}, Headers, _Body}) ->
+	DelaySeconds = list_to_integer(proplists:get_value("retry-after", Headers)),
+	raven_rate_limit:delay(DelaySeconds);
+extract_backoff(_Response) ->
+	ok.
 
 -spec user_agent() -> iolist().
 user_agent() ->
