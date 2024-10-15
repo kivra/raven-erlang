@@ -4,9 +4,8 @@
 -behaviour(supervisor).
 -export([init/1]).
 
-
 start_link() ->
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
     {ok, MaxIntensity} = application:get_env(max_restart_intensity),
@@ -23,4 +22,4 @@ init([]) ->
     {ok,
         {Config, [
             SentryWorker
-            ]}}.
+        ]}}.

@@ -1,25 +1,25 @@
 {application, raven, [
-	{description, "Erlang client for Sentry"},
-	{vsn, git},
-	{registered, []},
-	{applications, [
-		kernel,
-		stdlib,
-		crypto,
-		public_key,
-		ssl,
-		inets,
-		fuse
-	]},
-	{mod, {raven_app, []}},
-	{env, [
-		{uri, "https://app.getsentry.com"},
-		{project, "1"},
-		{public_key, ""},
-		{private_key, ""},
-		{error_logger, false},
-		{ipfamily, inet},
-		{rate_limit, false},
-		{max_restart_intensity, 9000}
-	]}
+    {description, "Erlang client for Sentry"},
+    {vsn, git},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        crypto,
+        public_key,
+        ssl,
+        inets,
+        fuse
+    ]},
+    {mod, {raven_app, []}},
+    {env, [
+        {uri, "https://app.getsentry.com"},
+        {project, "1"},
+        {public_key, ""},
+        {private_key, ""},
+        {error_logger, false},
+        {ipfamily, inet},
+        {rate_limit, false},
+        {max_restart_intensity, 9000}
+    ]}
 ]}.
