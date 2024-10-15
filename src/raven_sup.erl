@@ -9,17 +9,18 @@ start_link() ->
 
 init([]) ->
     {ok, MaxIntensity} = application:get_env(max_restart_intensity),
-    Config = #{
-        strategy => one_for_one,
-        intensity => MaxIntensity,
-        period => 10
+    Spec = {
+        #{
+            strategy => one_for_one,
+            intensity => MaxIntensity,
+            period => 10
+        },
+        _Children = [
+            #{
+                id => raven_sender,
+                start => {raven_send_sentry_safe, start_link, []},
+                restart => permanent
+            }
+        ]
     },
-    SentryWorker = #{
-        id => raven_send,
-        start => {raven_send_sentry_safe, start_link, []},
-        restart => permanent
-    },
-    {ok,
-        {Config, [
-            SentryWorker
-        ]}}.
+    {ok, Spec}.
