@@ -39,7 +39,7 @@ start(_StartType, _StartArgs) ->
 			end,
 			case application:get_env(otp_logger) of
 				{ok, true} ->
-					logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => warning
+					logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => error
 						, filter_default => log
 						, filters => [{ssl,      {fun logger_filters:domain/2, {stop, sub, [ssl]}}}
 									 ,{progress, {fun logger_filters:domain/2, {stop, equal, [progress]}}}
