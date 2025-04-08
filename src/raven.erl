@@ -104,10 +104,10 @@ capture_with_backoff_send(Body) ->
         ?RAVEN_HTTPC_PROFILE
 	),
 	case Result of
-	   {ok, {{_, 429, _}, H, _}} ->
-		    DelaySeconds = list_to_integer(proplists:get_value("retry-after", H)),
+		{ok, {{_, 429, _}, Headers, _}} ->
+			DelaySeconds = list_to_integer(proplists:get_value("retry-after", Headers)),
 			raven_rate_limit:delay(DelaySeconds);
-	   _ ->
+		_ ->
 			ok
     end,
 	ok.
