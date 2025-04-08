@@ -97,19 +97,19 @@ capture_with_backoff_send(Body) ->
 		{"User-Agent", UA}
 	],
 	ok = httpc:set_options([{ipfamily, Cfg#cfg.ipfamily}]),
-	{ok, Result} = httpc:request(post,
+	Result = httpc:request(post,
 		{Cfg#cfg.uri ++ "/api/store/", Headers, "application/octet-stream", Body},
 		[ssl_options()],
 		[{body_format, binary}],
         ?RAVEN_HTTPC_PROFILE
 	),
-	extract_backoff(Result),
-	ok.
-
-extract_backoff({{_HTTP, 429, _Message}, Headers, _Body}) ->
-	DelaySeconds = list_to_integer(proplists:get_value("retry-after", Headers)),
-	raven_rate_limit:delay(DelaySeconds);
-extract_backoff(_Response) ->
+	case Result of
+	   {ok, {{_, 429, _}, H, _}} ->
+		    DelaySeconds = list_to_integer(proplists:get_value("retry-after", H)),
+			raven_rate_limit:delay(DelaySeconds);
+	   _ ->
+			ok
+    end,
 	ok.
 
 -spec user_agent() -> iolist().
