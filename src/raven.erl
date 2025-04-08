@@ -104,12 +104,18 @@ capture_with_backoff_send(Body) ->
         ?RAVEN_HTTPC_PROFILE
 	),
 	case Result of
-		{ok, {{_, 429, _}, Headers, _}} ->
-			DelaySeconds = list_to_integer(proplists:get_value("retry-after", Headers)),
-			raven_rate_limit:delay(DelaySeconds);
+		{ok, Response} ->
+			handle_429(Response),
+			ok;
 		_ ->
 			ok
     end,
+	ok.
+
+handle_429({{_, 429, _}, Headers, _}) ->
+	RetryAfter = list_to_integer(proplists:get_value("retry-after", Headers)),
+	raven_rate_limit:delay(RetryAfter);
+handle_429(_) ->
 	ok.
 
 -spec user_agent() -> iolist().
