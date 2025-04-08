@@ -116,7 +116,7 @@ handle_429({{_, 429, _}, Headers, _}) ->
 	RetryAfter = list_to_integer(proplists:get_value("retry-after", Headers)),
 	raven_rate_limit:delay(RetryAfter);
 handle_429(_) ->
-    ok.
+	ok.
 
 -spec user_agent() -> iolist().
 user_agent() ->
