@@ -42,9 +42,8 @@ start(_StartType, _StartArgs) ->
 					logger:add_handler(raven_otp_logger, raven_logger_backend, #{level => error
 						, filter_default => log
 						, filters => [{ssl,      {fun logger_filters:domain/2, {stop, sub, [ssl]}}}
-									 ,{progress, {fun logger_filters:domain/2, {stop, equal, [progress]}}}
+									 ,{progress, {fun logger_filters:progress/2, stop}}
 									 ,{raven,    {fun logger_filters:domain/2, {stop, sub, [raven]}}}
-						             ,{sasl,     {fun logger_filters:domain/2, {stop, sub, [otp, sasl]}}}
 									 ]});
 				_ ->
 					ok
